@@ -14,24 +14,50 @@ public class MiningController {
 		}
 	}
 	
-	public MapLocation retreat(Direction enemyDir) { //go to closest safepoint (may want to check for direction later)
-		if (safeLocations.size == 1) { //only HQ is left:
-			return rc.senseHQLocation();
-		}
-		//otherwise:
-		MapLocation[] points = safeLocations.getKeys();
-		int minDist = Integer.MAX_VALUE;
-		MapLocation result=null, test;
-		int distance;
+	public MapLocation retreat(MapLocation enemyLoc) {
+		return enemyLoc;
 		
-		for (int i = 0; i<points.length; i++) {
-			test = points[i];
-			distance = rc.getLocation().distanceSquaredTo(test);
-			if (distance<minDist) {
-				result = test;
+	}
+	
+	public MapLocation findMiningLocation() {
+    	MapLocation check;
+    	boolean[][] seeable = {{true, true, true, true, true}, {true, true, true, true, true}, 
+    			{true, true, true, true, true}, {true, true, true, true, false}, {true, true, true, false, false}};
+    	int sightRange = (int)Math.floor(Math.sqrt(24));
+    	double maxOre = 0;
+    	MapLocation result = null;
+    	for (int i = sightRange; i>=0; i--) {
+    		for (int j = sightRange; j>=0; j--) {
+    			if (seeable[i][j] && (i != 0 && j != 0)) {
+    				check = new MapLocation(rc.getLocation().x + i, rc.getLocation().y + j);
+    				if (rc.senseOre(check) * getLocationWeighting(check) > maxOre) {
+    					result = check;
+    					maxOre = rc.senseOre(check);
+    				}
+    				check = new MapLocation(rc.getLocation().x - i, rc.getLocation().y - j);
+    				if (rc.senseOre(check) * getLocationWeighting(check) > maxOre) {
+    					result = check;
+    					maxOre = rc.senseOre(check);
+    				}
+    			}
+    				
+    		}
+    	}
+    	return result;
+    }
+	
+	public double getLocationWeighting(MapLocation loc) {
+		double weight = 1;
+		if (safeLocations.contains(loc)) {
+			weight = weight * 1.5;
+		}
+		RobotInfo[] potentialTowers = rc.senseNearbyRobots();
+		for (int i = 0; i > potentialTowers.length; i++) {
+			if (potentialTowers[i].type == RobotType.TOWER) {
+				weight = weight * .8;
 			}
 		}
-		return result;
+		return weight;
 	}
 	
 }
