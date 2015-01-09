@@ -48,13 +48,21 @@ public class MiningController {
 	
 	public double getLocationWeighting(MapLocation loc) {
 		double weight = 1;
-		if (safeLocations.contains(loc)) {
-			weight = weight * 1.5;
-		}
-		RobotInfo[] potentialTowers = rc.senseNearbyRobots();
-		for (int i = 0; i > potentialTowers.length; i++) {
-			if (potentialTowers[i].type == RobotType.TOWER) {
+
+		MapLocation[] enemyTowers = rc.senseEnemyTowerLocations();
+		MapLocation[] ourTowers = rc.senseTowerLocations();
+		for (int i = 0; i < enemyTowers.length; i++) { //iterate through enemy towers
+			if (enemyTowers[i].distanceSquaredTo(loc) <= 24) { //if tower is in attacking range
 				weight = weight * .8;
+			}
+			else if (enemyTowers[i].distanceSquaredTo(loc) <= 35) { //if tower is in sensing range
+				weight = weight * .9;
+			}
+		}
+		
+		for (int i = 0; i < ourTowers.length; i++) { //iterate through our towers
+			if (ourTowers[i].distanceSquaredTo(loc) <= 24) { //if tower is in defending range
+				weight = weight * 1.25;
 			}
 		}
 		return weight;
