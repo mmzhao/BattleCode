@@ -3,64 +3,49 @@ package testing;
 import battlecode.common.*;
 
 public class Beaver extends BaseBot {
-	private Mover move;
-	private MapLocation targetLoc;
-	private boolean mining;
-	private boolean movingInitialized;
+	public Mover move;
+	public MapLocation targetLoc;
+	public BuildingController bc;
+	public boolean building;
+	public boolean movingInitialized;
 	
     public Beaver(RobotController rc) {
         super(rc);
         move = new Mover(rc);
         targetLoc = null;
-        mining = false;
+        bc = new BuildingController(rc);
+        building = false;
         movingInitialized = false;
     }
 
     public void execute() throws GameActionException {
-    	rc.setIndicatorString(0, String.valueOf(mining));
-        if (rc.isCoreReady()) {
-            if (rc.getTeamOre() < 300) {
-                //mine
-                if (!mining && !movingInitialized) {
-                	move.startBug(findMiningLocation());
-                	rc.setIndicatorString(1, Integer.toString(findMiningLocation().x) +
-                			", " + Integer.toString(findMiningLocation().y));
-                	movingInitialized = true;
-                	Direction newDir = move.getNextMove();
-                    if (newDir != Direction.NONE && newDir != Direction.OMNI) {
-                        rc.move(newDir);
-                    } 
-                }
-                
-                else if (!mining) {
-                	Direction newDir = move.getNextMove();
-                    if (newDir != Direction.NONE && newDir != Direction.OMNI) {
-                        rc.move(newDir);
-                    } 
-                    else {
-                    	mining = true;
-                    } 
-                }
-                
-                else {
-                	if (rc.senseOre(rc.getLocation())>0) {
-                		rc.mine();
-                	} else {
-                		mining = false;
-                	}
-                }
-                rc.setIndicatorString(2, move.getNextMove().toString());
-            }
-            
-            else {
-                //build barracks
-                Direction newDir = getBuildDirection(RobotType.BARRACKS);
-                if (newDir != null) {
-                    rc.build(newDir, RobotType.BARRACKS);
-                }
-            }
-        }
-
+    	if (building) { 
+    		if (!rc.senseRobotAtLocation(rc.getLocation()).type.isBuilding){ //building done:
+    			building = false;
+    		} else {
+    			//extra time: do calculations
+    		}
+    	} else {
+    		if (!movingInitialized) { //start finding where to build
+    			MapLocation targetBuildLocation = bc.getBuildLocation();
+    			targetLoc = targetBuildLocation.subtract(rc.getLocation().directionTo(targetBuildLocation));
+    			move.startBug(targetLoc); //beaver goes to space in front of targetBuildLocation
+    			movingInitialized=true;
+    		}
+    		if (rc.getCoreDelay()<1) {
+    			Direction moveDir = move.getNextMove();
+    			if (moveDir!=Direction.NONE || moveDir!=Direction.OMNI) {
+    				rc.move(moveDir);
+    			} else if (rc.getTeamOre()>=bc.structureToBeBuilt.oreCost){ //arrived at location and start building:
+    				building = true;
+    				movingInitialized=false; 
+    				rc.build(rc.getLocation().directionTo(targetLoc), bc.structureToBeBuilt);
+    				bc.structureToBeBuilt = null; 
+    			}
+    		} else {
+    			//extra time: do calculations
+    		}
+    	}
         rc.yield();
     }
 }
