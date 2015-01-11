@@ -5,6 +5,7 @@ import battlecode.common.*;
 public class MiningController {
 	public RobotController rc;
 	public FastIterableLocSet safeLocations;
+	public FastLocSet visitedLocs;
 	
 	public MiningController(RobotController rc) {
 		this.rc = rc;
@@ -37,29 +38,38 @@ public class MiningController {
 	}
 	
 	public MapLocation findMiningLocation() {
+		MapLocation cur = rc.getLocation();
+		int x = cur.x, y = cur.y; 
+		MapLocation[] testLocationIndices = {new MapLocation(x, y+1), new MapLocation(x+1, y+1), 
+				new MapLocation(x+1, y), new MapLocation(x+1, y-1), new MapLocation(x, y-1), new MapLocation(x-1, y-1),
+				new MapLocation(x-1, y), new MapLocation(x-1, y+1), new MapLocation(x, y+2), new MapLocation(x+1, y+2),
+				new MapLocation(x+2, y+2), new MapLocation(x+2, y+1), new MapLocation(x+2, y), new MapLocation(x+2, y-1),
+				new MapLocation(x+2, y-2), new MapLocation(x+1, y-2), new MapLocation(x, y-2), new MapLocation(x-1, y-2),
+				new MapLocation(x-2, y-2), new MapLocation(x-2, y-1), new MapLocation(x-2, y), new MapLocation(x-2, y+1),
+				new MapLocation(x-2, y+2), new MapLocation(x-1, y+2), new MapLocation(x, y+3), new MapLocation(x+1, y+3),
+				new MapLocation(x+2, y+3), new MapLocation(x+3, y+3), new MapLocation(x+3, y+2), new MapLocation(x+3, y+1),
+				new MapLocation(x+3, y), new MapLocation(x+3, y-1), new MapLocation(x+3, y-2), new MapLocation(x+3, y-3), 
+				new MapLocation(x+2, y-3), new MapLocation(x+1, y-3), new MapLocation(x, y-3), new MapLocation(x-1, y-3), 
+				new MapLocation(x-2, y-3), new MapLocation(x-3, y-3), new MapLocation(x-3, y-2), new MapLocation(x-3, y-1), 
+				new MapLocation(x-3, y), new MapLocation(x-3, y+1), new MapLocation(x-3, y+2), new MapLocation(x-3, y+3),
+				new MapLocation(x-2, y+3), new MapLocation(x-1, y+3), new MapLocation(x, y+4), new MapLocation(x+1, y+4), 
+				new MapLocation(x+2, y+4), new MapLocation(x+4, y+2), new MapLocation(x+4, y+1), new MapLocation(x+4, y),
+				new MapLocation(x+4, y-1), new MapLocation(x+4, y-2), new MapLocation(x+2, y-4), new MapLocation(x+1, y-4), 
+				new MapLocation(x, y-4), new MapLocation(x-1, y-4), new MapLocation(x-2, y-4), new MapLocation(x-4, y-2), 
+				new MapLocation(x-4, y-1), new MapLocation(x-4, y), new MapLocation(x-4, y+1), new MapLocation(x-4, y+2),
+				new MapLocation(x-2, y+4), new MapLocation(x-1, y+4)}; 
     	MapLocation check;
-    	boolean[][] seeable = {{true, true, true, true, true}, {true, true, true, true, true}, 
-    			{true, true, true, true, true}, {true, true, true, true, false}, {true, true, true, false, false}};
-    	int sightRange = (int)Math.floor(Math.sqrt(24));
     	double maxOre = 0;
     	MapLocation result = null;
-    	for (int i = sightRange; i>=0; i--) {
-    		for (int j = sightRange; j>=0; j--) {
-    			if (seeable[i][j] && (i != 0 && j != 0)) {
-    				check = new MapLocation(rc.getLocation().x + i, rc.getLocation().y + j);
-    				if (rc.senseOre(check) * getLocationWeighting(check) > maxOre) {
-    					result = check;
-    					maxOre = rc.senseOre(check);
-    				}
-    				check = new MapLocation(rc.getLocation().x - i, rc.getLocation().y - j);
-    				if (rc.senseOre(check) * getLocationWeighting(check) > maxOre) {
-    					result = check;
-    					maxOre = rc.senseOre(check);
-    				}
-    			}
-    				
+    	int length = testLocationIndices.length;
+    	for (int i = 0; i<length; i++) {
+    		check = testLocationIndices[i];
+    		if (!visitedLocs.contains(check) && rc.senseOre(check) * getLocationWeighting(check) > maxOre) {
+    			result = check;
+    			maxOre = rc.senseOre(check);
     		}
     	}
+    	visitedLocs.add(result);
     	return result;
     }
 	
