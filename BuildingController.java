@@ -41,9 +41,9 @@ public class BuildingController {
 				new MapLocation(x, y-4), new MapLocation(x-1, y-4), new MapLocation(x-2, y-4), new MapLocation(x-4, y-2), 
 				new MapLocation(x-4, y-1), new MapLocation(x-4, y), new MapLocation(x-4, y+1), new MapLocation(x-4, y+2),
 				new MapLocation(x-2, y+4), new MapLocation(x-1, y+4)}; **/
-		
+		int length = testLocationIndices.length;
 		structureToBeBuilt = keys[rc.readBroadcast(10)]; //change this to the right message reading method
-		for (int i = 0; i<testLocationIndices.length; i++) {
+		for (int i = 0; i<length; i++) {
 			test = testLocationIndices[i];
 			if (rc.senseOre(test)<=20) {
 				result = test;
