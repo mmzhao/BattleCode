@@ -8,6 +8,7 @@ public class Beaver extends BaseBot {
 	public BuildingController bc;
 	public boolean building;
 	public boolean movingInitialized;
+	public State state;
 	
     public Beaver(RobotController rc) {
         super(rc);
@@ -16,9 +17,37 @@ public class Beaver extends BaseBot {
         bc = new BuildingController(rc);
         building = false;
         movingInitialized = false;
+        state = State.IDLE;
     }
 
     public void execute() throws GameActionException {
+    	
+    	switch(state) {
+    		case IDLE: 
+    			int instruction = rc.readBroadcast(5); //change when messaging syste is finished
+    			if (instruction == 0) {
+    				state = State.MINING;
+    				mineBehavior();
+    			}
+    			else {
+    				state = State.BUILDING;
+    				buildBehavior();
+    			}
+    		case MINING:
+    			mineBehavior();
+    		case BUILDING:
+    			buildBehavior();
+    		default: break;
+    	}
+    	
+    	rc.yield();
+    }
+    
+    public void mineBehavior() {
+    
+    }
+    
+    public void buildBehavior() throws GameActionException {
     	if (building) { 
     		if (!rc.senseRobotAtLocation(rc.getLocation()).type.isBuilding){ //building done:
     			building = false;
@@ -46,6 +75,5 @@ public class Beaver extends BaseBot {
     			//extra time: do calculations
     		}
     	}
-        rc.yield();
     }
 }

@@ -46,7 +46,6 @@ public class BuildingController {
 		for (int i = 0; i<testLocationIndices.length; i++) {
 			test = testLocationIndices[i];
 			if (rc.senseOre(test)<=20) {
-				System.out.println("hasdfasdf");
 				result = test;
 				break;
 			}

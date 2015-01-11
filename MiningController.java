@@ -14,8 +14,25 @@ public class MiningController {
 		}
 	}
 	
-	public MapLocation retreat(MapLocation enemyLoc) {
-		return enemyLoc;
+	public MapLocation retreat() {
+		MapLocation cur = rc.getLocation();
+		MapLocation[] locationsToCheck = safeLocations.getKeys();
+		int length = locationsToCheck.length;
+		if (length==1) {
+			return locationsToCheck[0];
+		}
+		int distance = Integer.MAX_VALUE;
+		MapLocation result = null;
+		MapLocation check;
+		for (int i = length-1; --i >= 0;) {
+			check = locationsToCheck[i];
+			int checkDist = cur.distanceSquaredTo(check);
+			if (checkDist < distance) {
+				result = check;
+				distance = checkDist;
+			}
+		}
+		return result;
 		
 	}
 	
@@ -66,6 +83,17 @@ public class MiningController {
 			}
 		}
 		return weight;
+	}
+	
+	public boolean goodMiningLocation(MapLocation curLoc, Direction curDir) { //checks 5 directions around target if they're good mining locations
+		Direction startDir = curDir.rotateRight().rotateRight();
+		for (int i = 4; --i>=0;) {
+			if (rc.senseOre(curLoc.add(curDir))<30) {
+				return false;
+			}
+			curDir.rotateLeft();
+		}
+		return true;
 	}
 	
 }
