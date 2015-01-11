@@ -4,29 +4,31 @@ import battlecode.common.*;
 
 public class MiningController {
 	public RobotController rc;
-	public FastIterableLocSet safeLocations;
 	public FastLocSet visitedLocs;
+	public MapLocation[] safeLocations;
 	
 	public MiningController(RobotController rc) {
 		this.rc = rc;
-		safeLocations.add(rc.senseHQLocation());
-		for (MapLocation tower:rc.senseTowerLocations()) {
-			safeLocations.add(tower);
+		MapLocation[] towerArray = rc.senseTowerLocations();
+		int length = towerArray.length;
+		safeLocations = new MapLocation[length];
+		safeLocations[0] = rc.senseHQLocation();
+		for (int i = 1; i <= length; i++) {
+			safeLocations[i] = towerArray[i-1];
 		}
 	}
 	
 	public MapLocation retreat() {
 		MapLocation cur = rc.getLocation();
-		MapLocation[] locationsToCheck = safeLocations.getKeys();
-		int length = locationsToCheck.length;
+		int length = safeLocations.length;
 		if (length==1) {
-			return locationsToCheck[0];
+			return safeLocations[0];
 		}
 		int distance = Integer.MAX_VALUE;
 		MapLocation result = null;
 		MapLocation check;
 		for (int i = length-1; --i >= 0;) {
-			check = locationsToCheck[i];
+			check = safeLocations[i];
 			int checkDist = cur.distanceSquaredTo(check);
 			if (checkDist < distance) {
 				result = check;
@@ -34,7 +36,6 @@ public class MiningController {
 			}
 		}
 		return result;
-		
 	}
 	
 	public MapLocation findMiningLocation() {
@@ -77,18 +78,18 @@ public class MiningController {
 		double weight = 1;
 
 		MapLocation[] enemyTowers = rc.senseEnemyTowerLocations();
-		MapLocation[] ourTowers = rc.senseTowerLocations();
-		for (int i = 0; i < enemyTowers.length; i++) { //iterate through enemy towers
+		int length = enemyTowers.length;
+		for (int i = 0; i < length; i++) { //iterate through enemy towers
 			if (enemyTowers[i].distanceSquaredTo(loc) <= 24) { //if tower is in attacking range
-				weight = weight * .8;
+				weight = 0;
 			}
 			else if (enemyTowers[i].distanceSquaredTo(loc) <= 35) { //if tower is in sensing range
-				weight = weight * .9;
+				weight = weight * .5;
 			}
 		}
-		
-		for (int i = 0; i < ourTowers.length; i++) { //iterate through our towers
-			if (ourTowers[i].distanceSquaredTo(loc) <= 24) { //if tower is in defending range
+		length = safeLocations.length;
+		for (int i = 0; i < length; i++) { //iterate through our towers
+			if (safeLocations[i].distanceSquaredTo(loc) <= 24) { //if tower is in defending range
 				weight = weight * 1.25;
 			}
 		}
