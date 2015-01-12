@@ -29,6 +29,9 @@ public class Soldier extends BaseBot {
             int rallyX = rc.readBroadcast(0);
             int rallyY = rc.readBroadcast(1);
             MapLocation rallyPoint = new MapLocation(rallyX, rallyY);
+            if(rc.getLocation().distanceSquaredTo(rallyPoint) > rc.getLocation().distanceSquaredTo(theirHQ)){
+            	rallyPoint = theirHQ;
+            }
             move.startBug(rallyPoint);
             Direction newDir = move.getNextMove();
 

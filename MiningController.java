@@ -1,17 +1,22 @@
 package testing;
 
+import java.util.ArrayList;
+
 import battlecode.common.*;
 
 public class MiningController {
 	public RobotController rc;
-	public FastLocSet visitedLocs;
+//	public FastLocSet visitedLocs;
+	public ArrayList<MapLocation> visitedLocs;
 	public MapLocation[] safeLocations;
 	
 	public MiningController(RobotController rc) {
 		this.rc = rc;
+//		visitedLocs = new FastLocSet();
+		visitedLocs = new ArrayList<MapLocation>();
 		MapLocation[] towerArray = rc.senseTowerLocations();
 		int length = towerArray.length;
-		safeLocations = new MapLocation[length];
+		safeLocations = new MapLocation[length + 1]; // + 1 to account for HQ you pleeb
 		safeLocations[0] = rc.senseHQLocation();
 		for (int i = 1; i <= length; i++) {
 			safeLocations[i] = towerArray[i-1];

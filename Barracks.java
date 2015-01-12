@@ -16,7 +16,6 @@ public class Barracks extends BaseBot {
             Direction newDir = getSpawnDirection(RobotType.SOLDIER);
             if (newDir != null) {
                 rc.spawn(newDir, RobotType.SOLDIER);
-                rc.broadcast(3, numSoldiers + 1);
             }
         }
 
