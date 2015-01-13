@@ -1,10 +1,11 @@
 package testing;
 
 import battlecode.common.*;
+
 import java.util.*;
 
 public class RobotPlayer {
-	public static void run(RobotController rc) {
+	public static void run(RobotController rc) throws GameActionException {
         BaseBot myself;
 
         if (rc.getType() == RobotType.HQ) {
