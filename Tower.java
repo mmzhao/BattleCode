@@ -19,6 +19,8 @@ public class Tower extends BaseBot {
             }
         }
         
+        transferSupplies();
+        
         rc.yield();
     }
 }

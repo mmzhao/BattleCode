@@ -8,15 +8,16 @@ public class Helipad  extends BaseBot {
 	}
 	
 	public void execute() throws GameActionException {
-		int numDrones = rc.readBroadcast(5);
-        if (rc.isCoreReady() && rc.getTeamOre() > 125) {
+		int numDrones = rc.readBroadcast(getUnit(RobotType.DRONE) + 10);
+        if (rc.getCoreDelay() < 1 && rc.getTeamOre() > RobotType.DRONE.oreCost) {
             Direction newDir = getSpawnDirection(RobotType.DRONE);
-            rc.setIndicatorString(0, newDir.toString());
             if (newDir != null) {
                 rc.spawn(newDir, RobotType.DRONE);
-                rc.broadcast(5, numDrones + 1);
+                rc.broadcast(getUnit(RobotType.DRONE) + 10, numDrones + 1);
             }
         }
+        
+        transferSupplies();
 
         rc.yield();
 	}

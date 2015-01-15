@@ -13,11 +13,14 @@ import battlecode.common.RobotType;
 import battlecode.common.Team;
 
 public class BaseBot {
+	
     protected RobotController rc;
     protected MapLocation myHQ, theirHQ;
     protected Team myTeam, theirTeam;
     static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	static Random rand;
+	
+	static int[] inQueue;
 
     public BaseBot(RobotController rc) {
         this.rc = rc;
@@ -28,9 +31,79 @@ public class BaseBot {
         rand = new Random(rc.getID());
     }
     
+  //1 -- number of barracks
+  //2 -- number of minerfactories
+  //3 -- number of helipads
+  //4 -- number of supplydepos
+  //5 -- number of tank factories
+  //6 -- number of tech institutes
+  //7 -- number of aerospace labs
+  //8 -- number of training fields
+  //9 -- number of handwash stations
+
+  //11 -- number of beavers
+  //12 -- number of miners
+  //13 -- number of soldiers
+  //14 -- number of bashers
+  //15 -- number of drones
+  //16 -- number of tanks
+  //17 -- number of launchers
+  //18 -- number of commanders
+  //19 -- number of computers
+    
+    public RobotType getUnit(int type){
+    	if(type == 1) return RobotType.BEAVER;
+    	else if(type == 2) return RobotType.MINER;
+    	else if(type == 3) return RobotType.SOLDIER;
+    	else if(type == 4) return RobotType.BASHER;
+    	else if(type == 5) return RobotType.DRONE;
+    	else if(type == 6) return RobotType.TANK;
+    	else if(type == 7) return RobotType.LAUNCHER;
+    	else if(type == 8) return RobotType.COMMANDER;
+    	else if(type == 9) return RobotType.COMPUTER;
+    	return null;
+    }
+    
+    public int getUnit(RobotType type){
+    	if(type == RobotType.BEAVER) return 1;
+    	else if(type == RobotType.MINER) return 2;
+    	else if(type == RobotType.SOLDIER) return 3;
+    	else if(type == RobotType.BASHER) return 4;
+    	else if(type == RobotType.DRONE) return 5;
+    	else if(type == RobotType.TANK) return 6;
+    	else if(type == RobotType.LAUNCHER) return 7;
+    	else if(type == RobotType.COMMANDER) return 8;
+    	else if(type == RobotType.COMPUTER) return 9;
+    	return 0;
+    }
+    
+    public RobotType getBuilding(int type){
+    	if(type == 1) return RobotType.BARRACKS;
+    	else if(type == 2) return RobotType.MINERFACTORY;
+    	else if(type == 3) return RobotType.HELIPAD;
+    	else if(type == 4) return RobotType.SUPPLYDEPOT;
+    	else if(type == 5) return RobotType.TANKFACTORY;
+    	else if(type == 6) return RobotType.TECHNOLOGYINSTITUTE;
+    	else if(type == 7) return RobotType.AEROSPACELAB;
+    	else if(type == 8) return RobotType.TRAININGFIELD;
+    	else if(type == 9) return RobotType.HANDWASHSTATION;
+    	return null;
+    }
+    
+    public int getBuilding(RobotType type){
+    	if(type == RobotType.BARRACKS) return 1;
+    	else if(type == RobotType.MINERFACTORY) return 2;
+    	else if(type == RobotType.HELIPAD) return 3;
+    	else if(type == RobotType.SUPPLYDEPOT) return 4;
+    	else if(type == RobotType.TANKFACTORY) return 5;
+    	else if(type == RobotType.TECHNOLOGYINSTITUTE) return 6;
+    	else if(type == RobotType.AEROSPACELAB) return 7;
+    	else if(type == RobotType.TRAININGFIELD) return 8;
+    	else if(type == RobotType.HANDWASHSTATION) return 9;
+    	return 0;
+    }
+    
     public void transferSupplies() throws GameActionException{
-    	rc.setIndicatorString(0, GameConstants.SUPPLY_TRANSFER_RADIUS_SQUARED + "");
-//    	int HQDistance = rc.getLocation().distanceSquaredTo(theirHQ);
     	
     	double minSupply = rc.getSupplyLevel();
     	MapLocation toTransfer = null;
@@ -53,7 +126,7 @@ public class BaseBot {
 //    		}
     		
     	}
-    	if(toTransfer != null){
+    	if(toTransfer != null && rc.senseRobotAtLocation(toTransfer) != null){
     		rc.transferSupplies((int)(transferAmount), toTransfer);
     	}
     }
@@ -63,13 +136,28 @@ public class BaseBot {
 		int[] offsets = {0,1,-1,2,-2};
 		int dirint = directionToInt(d);
 		boolean blocked = false;
-		while (offsetIndex < 5 && !rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8])) {
+		while (offsetIndex < 5 && 
+				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
+						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])))) {
 			offsetIndex++;
 		}
 		if (offsetIndex < 5) {
 			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
 		}
 	}
+    
+    public boolean isSafe(MapLocation ml){
+    	MapLocation[] enemyTowers = rc.senseEnemyTowerLocations();
+    	for(MapLocation m: enemyTowers){
+    		if(ml.distanceSquaredTo(m) <= RobotType.TOWER.attackRadiusSquared){
+    			return false;
+    		}
+    	}
+    	if(ml.distanceSquaredTo(theirHQ) <= RobotType.HQ.attackRadiusSquared){
+    		return false;
+    	}
+    	return true;
+    }
 
 	// This method will attempt to spawn in the given direction (or as close to it as possible)
 	public void trySpawn(Direction d, RobotType type) throws GameActionException {
@@ -86,18 +174,7 @@ public class BaseBot {
 	}
 
 	// This method will attempt to build in the given direction (or as close to it as possible)
-	public void tryBuild(Direction d, RobotType type) throws GameActionException {
-		int offsetIndex = 0;
-		int[] offsets = {0,1,-1,2,-2,3,-3,4};
-		int dirint = directionToInt(d);
-		boolean blocked = false;
-		while (offsetIndex < 8 && !rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8])) {
-			offsetIndex++;
-		}
-		if (offsetIndex < 8) {
-			rc.build(directions[(dirint+offsets[offsetIndex]+8)%8], type);
-		}
-	}
+	
 
 	public int directionToInt(Direction d) {
 		switch(d) {

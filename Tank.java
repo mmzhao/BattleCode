@@ -6,20 +6,21 @@ import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
 import battlecode.common.RobotInfo;
 
-public class Soldier extends BaseBot {
+public class Tank extends BaseBot{
+
 	private Mover move;
 	private MapLocation targetLoc;
 	private boolean defender;
 	
-    public Soldier(RobotController rc) throws GameActionException {
+    public Tank(RobotController rc) throws GameActionException {
         super(rc);
         move = new Mover(rc);
         targetLoc = null;
         defender = false;
-        if(rc.readBroadcast(1000) < 10){
-        	defender = true;
-        	rc.broadcast(1000, rc.readBroadcast(6) + 1);
-        }
+//        if(rc.readBroadcast(1000) < 10){
+//        	defender = true;
+//        	rc.broadcast(1000, rc.readBroadcast(6) + 1);
+//        }
     }
 
     public void execute() throws GameActionException {
@@ -32,7 +33,7 @@ public class Soldier extends BaseBot {
                 attackLeastHealthEnemy(enemies);
             }
         }
-        else if (rc.isCoreReady()) {
+        if (rc.isCoreReady()) {
         	if(defender){
         		if(rc.getLocation().distanceSquaredTo(myHQ) > 10){
         			tryMove(rc.getLocation().directionTo(myHQ));
@@ -59,4 +60,5 @@ public class Soldier extends BaseBot {
         
         rc.yield();
     }
+	
 }

@@ -7,30 +7,33 @@ import battlecode.common.RobotController;
 import battlecode.common.RobotInfo;
 
 public class Drone extends BaseBot {
-    public Drone(RobotController rc) {
+	
+    public Drone(RobotController rc) throws GameActionException {
         super(rc);
     }
-
+    
     public void execute() throws GameActionException {
+    	rc.setIndicatorString(1, rc.getType().supplyUpkeep + "");
         RobotInfo[] enemies = getEnemiesInAttackingRange();
 
         if (enemies.length > 0) {
             //attack!
             if (rc.isWeaponReady()) {
+            	
                 attackLeastHealthEnemy(enemies);
             }
         }
         else if (rc.isCoreReady()) {
-            int rallyX = rc.readBroadcast(0);
-            int rallyY = rc.readBroadcast(1);
+            int rallyX = rc.readBroadcast(1001);
+            int rallyY = rc.readBroadcast(1002);
             MapLocation rallyPoint = new MapLocation(rallyX, rallyY);
-            rc.setIndicatorString(0, Integer.toString(rallyX) + ", " + Integer.toString(rallyY));
-            Direction newDir = getMoveDir(rallyPoint);
-
-            if (newDir != null) {
-                rc.move(newDir);
-            }
+            rc.setIndicatorString(0, rallyX + " " + rallyY);
+            tryMove(rc.getLocation().directionTo(rallyPoint));
         }
+        
+        transferSupplies();
+        
         rc.yield();
     }
+    
 }

@@ -12,10 +12,22 @@ public class RobotPlayer {
             myself = new HQ(rc);
         } else if (rc.getType() == RobotType.BEAVER) {
             myself = new Beaver(rc);
+        } else if (rc.getType() == RobotType.MINER) {
+            myself = new Miner(rc);
+        } else if (rc.getType() == RobotType.MINERFACTORY) {
+            myself = new MinerFactory(rc);
+        } else if (rc.getType() == RobotType.HELIPAD) {
+            myself = new Helipad(rc);
+        } else if (rc.getType() == RobotType.DRONE) {
+            myself = new Drone(rc);
         } else if (rc.getType() == RobotType.BARRACKS) {
             myself = new Barracks(rc);
         } else if (rc.getType() == RobotType.SOLDIER) {
             myself = new Soldier(rc);
+        } else if (rc.getType() == RobotType.TANKFACTORY) {
+            myself = new TankFactory(rc);
+        } else if (rc.getType() == RobotType.TANK) {
+            myself = new Tank(rc);
         } else if (rc.getType() == RobotType.TOWER) {
             myself = new Tower(rc);
         } else {

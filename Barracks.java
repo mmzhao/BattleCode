@@ -11,13 +11,16 @@ public class Barracks extends BaseBot {
     }
 
     public void execute() throws GameActionException {
-    	int numSoldiers = rc.readBroadcast(3);
-        if (rc.getCoreDelay()<1 && rc.getTeamOre() > 200) {
+    	int numSoldiers = rc.readBroadcast(getUnit(RobotType.SOLDIER) + 10);
+        if (rc.getCoreDelay() < 1 && numSoldiers < 20 && rc.getTeamOre() > 200) {
             Direction newDir = getSpawnDirection(RobotType.SOLDIER);
             if (newDir != null) {
                 rc.spawn(newDir, RobotType.SOLDIER);
+                rc.broadcast(getUnit(RobotType.SOLDIER) + 10, numSoldiers + 1);
             }
         }
+        
+        transferSupplies();
 
         rc.yield();
     }

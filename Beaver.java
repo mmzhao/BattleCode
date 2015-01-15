@@ -12,136 +12,142 @@ public class Beaver extends BaseBot {
 	public boolean building;
 	public boolean movingInitialized;
 	public State state;
-	
-    public Beaver(RobotController rc) {
-        super(rc);
-        move = new Mover(rc);
-        targetLoc = null;
-        bc = new BuildingController(rc);
-        mc = new MiningController(rc);
-        building = false;
-        movingInitialized = false;
-        state = State.IDLE;
-    }
+	public RobotType toBuild;
 
-    public void execute() throws GameActionException {
-    	rc.setIndicatorString(1, rc.getType().supplyUpkeep + "");
-    	rc.setIndicatorString(2, state + " " + rc.readBroadcast(5));
-    	if(rc.getHealth() <= 0){
-    		rc.broadcast(2, rc.readBroadcast(2) - 1);
-    	}
-    	switch(state) {
-    		case IDLE: 
-    			int instruction = rc.readBroadcast(5); //change when messaging system is finished
-    			if (instruction == 0) {
-    				state = State.MINING;
-    				mineBehavior();
-    			}
-    			else {
-    				rc.broadcast(5, instruction - 1);
-    				state = State.BUILDING;
-    				buildBehavior();
-    			}
-    		case MINING:
-    			instruction = rc.readBroadcast(5);
-    			if (instruction > 0) {
-    				rc.broadcast(5, instruction - 1);
-    				state = State.BUILDING;
-    				buildBehavior();
-    			}
-    			else 
-    				mineBehavior();
-    		case BUILDING:
-    			instruction = rc.readBroadcast(5);
-    			if (instruction <= 0) {
-    				state = State.MINING;
-    				mineBehavior();
-    			}
-    			else
-    				buildBehavior();
-    		default: break;
-    	}
-    	
-    	transferSupplies();
-    	
-    	rc.yield();
-    }
-    
-    public void mineBehavior() throws GameActionException {
-    	rc.setIndicatorString(0, rc.readBroadcast(5) + "");
-//    	rc.setIndicatorString(1, rc.getLocation().distanceSquaredTo(rc.senseHQLocation()) + "");
-    	if (rc.isCoreReady()) {
-    		if(Clock.getRoundNum() < 500 && rc.getLocation().distanceSquaredTo(rc.senseHQLocation()) < 10){//
-    			tryMove(rc.senseHQLocation().directionTo(rc.getLocation()));
-    		}
-    	}
-    	if(rc.senseOre(rc.getLocation()) > 1){
-    		if(rc.isCoreReady() && rc.canMine()){
-//    			rc.setIndicatorString(2, "MINING");
-    			rc.mine();
-    		}
-    	}
-//    	MapLocation toMine = mc.findMiningLocation();
-//    	if(rc.isCoreReady()){
-//    		rc.setIndicatorString(0, toMine.x + "");
-//    		rc.setIndicatorString(1, toMine.y + "");
-//    		rc.setIndicatorString(2, "MOVING");
-//    		rc.move(getMoveDir(toMine));
-		// }
-		if (rc.isCoreReady()) {
+	public Beaver(RobotController rc) {
+		super(rc);
+		move = new Mover(rc);
+		bc = new BuildingController(rc);
+		mc = new MiningController(rc);
+		state = State.IDLE;
+		toBuild = null;
+	}
 
-			int fate = rand.nextInt(1000);
-			// if (fate < 8 && rc.getTeamOre() >= 300) {
-			// tryBuild(directions[rand.nextInt(8)],RobotType.BARRACKS);
-			// }
-			if (fate < 600) {
-				rc.mine();
-			} else if (fate < 900) {
-				tryMove(directions[rand.nextInt(8)]);
-			} else {
-//				tryMove(rc.senseHQLocation().directionTo(rc.getLocation()));
-				tryMove(rc.getLocation().directionTo(rc.senseEnemyHQLocation()));
+	public void execute() throws GameActionException {
+		RobotInfo[] enemies = getEnemiesInAttackingRange();
+
+		if (enemies.length > 0) {
+			// attack!
+			if (rc.isWeaponReady()) {
+				attackLeastHealthEnemy(enemies);
 			}
+		}
+		int instruction = rc.readBroadcast(0); // change when messaging system
+												// is finished
+		if (state == State.IDLE) {
+			if (instruction == 0) {
+				state = State.MINING;
+				mineBehavior();
+			} else {
+				// rc.setIndicatorString(0, (int)(instruction/10) + "");
+				if (startBuilding(getBuilding(instruction % 10))) {
+					rc.broadcast(0, instruction / 10);
+					toBuild = getBuilding(instruction % 10);
+					state = State.BUILDING;
+				}
+			}
+		} else if (state == State.MINING) {
+			instruction = rc.readBroadcast(0);
+			if (instruction > 0) {
+				if (startBuilding(getBuilding(instruction % 10))) {
+					rc.broadcast(0, instruction / 10);
+					toBuild = getBuilding(instruction % 10);
+					state = State.BUILDING;
+				}
+			} else
+				mineBehavior();
+		} else if (state == State.BUILDING) {
+			building();
+		}
 
+		rc.setIndicatorString(0, state.toString());
+
+		transferSupplies();
+
+		rc.yield();
+	}
+
+	public void building() throws GameActionException {
+		if (!rc.senseRobotAtLocation(rc.getLocation()).type.isBuilding) { // building
+																			// done:
+		// inQueue[getBuilding(toBuild)]--; //don't know why this line isn't
+		// working
+			toBuild = null;
+			state = State.IDLE;
 		}
 	}
-    
-    public void buildBehavior() throws GameActionException {
-    	if (building) { 
-    		if (!rc.senseRobotAtLocation(rc.getLocation()).type.isBuilding){ //building done:
-    			building = false;
-    		} else {
-    			//extra time: do calculations
-    		}
-    	} 
-    	else {
-//    		if (!movingInitialized) { //start finding where to build
-//    			targetLoc = rc.getLocation();
-//    			MapLocation targetBuildLocation = bc.getBuildLocation();
-//    			targetLoc = targetBuildLocation.subtract(rc.getLocation().directionTo(targetBuildLocation));
-//    			move.startBug(targetLoc); //beaver goes to space in front of targetBuildLocation
-//    			movingInitialized=true;
-//    		}
-    		if (rc.isCoreReady()){
-//    			targetLoc = rc.senseHQLocation();
-//    			Direction moveDir = move.getNextMove();
-//    			Direction moveDir = rc.getLocation().directionTo(targetLoc);
-//    			if (moveDir != null && moveDir!=Direction.NONE && moveDir!=Direction.OMNI) {
-//    				rc.move(moveDir);
-//    			} 
-    			if (rc.getTeamOre() >= RobotType.BARRACKS.oreCost){ //arrived at location and start building:
-//    				building = true;
-//    				movingInitialized = false; 
-//    				rc.build(rc.getLocation().directionTo(targetLoc), RobotType.BARRACKS);
-    				tryBuild(directions[rand.nextInt(8)],RobotType.BARRACKS);
-//    				bc.structureToBeBuilt = null; 
-    			}
-    		}
-    		else {
-    			//extra time: do calculations
-    		}
-    	}
-    }
-    
+
+	public boolean startBuilding(RobotType type) throws GameActionException {
+		if (rc.isCoreReady()) {
+			if (rc.getTeamOre() >= type.oreCost) {
+				return tryBuild(directions[rand.nextInt(8)], type);
+
+			} else
+				mineBehavior();
+		}
+		return false;
+	}
+
+	public void mineBehavior() throws GameActionException {
+		if (rc.isCoreReady()) {
+			// if(Clock.getRoundNum() < 500 &&
+			// 		rc.getLocation().distanceSquaredTo(rc.senseHQLocation()) < 10){//
+			// 		tryMove(rc.senseHQLocation().directionTo(rc.getLocation()));
+			if (rc.senseOre(rc.getLocation()) >= 4) {
+				if (rc.canMine()) {
+					rc.mine();
+				}
+			}
+			else{
+				int fate = rand.nextInt(1000);
+				if (fate < 750) {
+					tryMove(directions[rand.nextInt(8)]);
+				} else {
+					tryMove(rc.getLocation().directionTo(rc.senseEnemyHQLocation()));
+				}
+			}
+		}
+	}
+
+	// public void buildBehavior() throws GameActionException {
+	// if (building) {
+	// if (!rc.senseRobotAtLocation(rc.getLocation()).type.isBuilding){
+	// //building done:
+	// building = false;
+	// inQueue[getBuilding(toBuild)]--;
+	// toBuild = null;
+	// state = State.IDLE;
+	// } else {
+	// //extra time: do calculations
+	// }
+	// }
+	// else {
+	// if (rc.isCoreReady()){
+	// if (rc.getTeamOre() >= toBuild.oreCost){
+	// tryBuild(directions[rand.nextInt(8)],toBuild);
+	// }
+	// }
+	// else {
+	// //extra time: do calculations
+	// }
+	// }
+	// }
+	//
+	public boolean tryBuild(Direction d, RobotType type)
+			throws GameActionException {
+		int offsetIndex = 0;
+		int[] offsets = { 0, 1, -1, 2, -2, 3, -3, 4 };
+		int dirint = directionToInt(d);
+		boolean blocked = false;
+		while (offsetIndex < 8
+				&& !rc.canMove(directions[(dirint + offsets[offsetIndex] + 8) % 8])) {
+			offsetIndex++;
+		}
+		if (offsetIndex < 8) {
+			rc.build(directions[(dirint + offsets[offsetIndex] + 8) % 8], type);
+			return true;
+		}
+		return false;
+	}
 
 }
