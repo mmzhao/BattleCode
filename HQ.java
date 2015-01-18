@@ -87,15 +87,15 @@ public class HQ extends BaseBot {
 
 		//attack if possible
 		if (rc.isWeaponReady()) {
-			attackLeastHealthEnemy(getEnemiesInAttackingRange());
+			attackLeastHealthEnemy(getEnemiesInAttackingRange(rc.getType()));
 		}
 
 		//always have 2 beavers up
-		keepingTwoBeavers();
+		keepingSomeBeavers(2);
 		
 		//set up strat
 //		soldierRushStrat();
-		tankRushStrat();
+		tankStrat();
 		
 		//set up rally point
 		MapLocation rallyPoint = normalRushRally();
@@ -137,9 +137,9 @@ public class HQ extends BaseBot {
 		rc.yield();
 	}
 	
-	public void keepingTwoBeavers() throws GameActionException{
+	public void keepingSomeBeavers(int num) throws GameActionException{
 		if (rc.isCoreReady()) {
-			if (units[getUnit(RobotType.BEAVER)] < 2) {
+			if (units[getUnit(RobotType.BEAVER)] < 1 || (units[getUnit(RobotType.BEAVER)] < 2 && buildings[getBuilding(RobotType.MINERFACTORY)] > 1)) {
 				if (rc.getTeamOre() > 100) {
 					Direction newDir = getSpawnDirection(RobotType.BEAVER);
 					if (newDir != null) {
@@ -199,10 +199,33 @@ public class HQ extends BaseBot {
 		}
 	}
 	
+	public void tankStrat() throws GameActionException {
+
+		if (buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 2) {
+			addToQueue(getBuilding(RobotType.MINERFACTORY));
+		}
+
+		else if (buildings[getBuilding(RobotType.SUPPLYDEPOT)] > 0 && buildings[getBuilding(RobotType.BARRACKS)]
+				+ inQueue[getBuilding(RobotType.BARRACKS)] < 1) {
+			addToQueue(getBuilding(RobotType.BARRACKS));
+		}
+
+		else if (buildings[getBuilding(RobotType.BARRACKS)] > 0 && buildings[getBuilding(RobotType.TANKFACTORY)]
+						+ inQueue[getBuilding(RobotType.TANKFACTORY)] < 5) {
+			addToQueue(getBuilding(RobotType.TANKFACTORY));
+		}
+		
+		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
+						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) (Clock.getRoundNum() / 200) - 1) {
+			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
+		}
+	}
+	
 	public void tankRushStrat() throws GameActionException{
 		
 		if (buildings[getBuilding(RobotType.MINERFACTORY)]
-				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 3) {
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 2) {
 			addToQueue(getBuilding(RobotType.MINERFACTORY));
 		}
 
@@ -327,7 +350,7 @@ public class HQ extends BaseBot {
 			inQueue[queue % 10]++;
 			queue /= 10;
 		}
-//		 rc.setIndicatorString(0, "Queue: " + rc.readBroadcast(0));
+		 rc.setIndicatorString(0, "Queue: " + rc.readBroadcast(0));
 		 rc.setIndicatorString(2, buildings[1] + " " + buildings[2] + " "
 		 + buildings[3] + " " + buildings[4] + " " + buildings[5] + " "
 		 + buildings[6] + " " + buildings[7] + " " + buildings[8] + " "

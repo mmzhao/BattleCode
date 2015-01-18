@@ -25,7 +25,7 @@ public class Soldier extends BaseBot {
 
     public void execute() throws GameActionException {
     	rc.setIndicatorString(1, rc.getType().supplyUpkeep + "");
-        RobotInfo[] enemies = getEnemiesInAttackingRange();
+        RobotInfo[] enemies = getEnemiesInAttackingRange(rc.getType());
 
         if (enemies.length > 0) {
             //attack!

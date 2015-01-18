@@ -10,7 +10,7 @@ public class Tower extends BaseBot {
     }
 
     public void execute() throws GameActionException {
-    	RobotInfo[] enemies = getEnemiesInAttackingRange();
+    	RobotInfo[] enemies = getEnemiesInAttackingRange(rc.getType());
 
         if (enemies.length > 0) {
             //attack!

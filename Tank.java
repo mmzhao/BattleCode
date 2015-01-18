@@ -1,10 +1,12 @@
 package testing;
 
+import battlecode.common.Clock;
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
 import battlecode.common.RobotInfo;
+import battlecode.common.RobotType;
 
 public class Tank extends BaseBot{
 
@@ -25,7 +27,7 @@ public class Tank extends BaseBot{
 
     public void execute() throws GameActionException {
     	rc.setIndicatorString(1, rc.getType().supplyUpkeep + "");
-        RobotInfo[] enemies = getEnemiesInAttackingRange();
+        RobotInfo[] enemies = getEnemiesInAttackingRange(rc.getType());
 
         if (enemies.length > 0) {
             //attack!
@@ -57,4 +59,24 @@ public class Tank extends BaseBot{
         rc.yield();
     }
 	
+    public boolean isSafe(MapLocation ml) throws GameActionException{
+    	if(Clock.getRoundNum() > 1500) return true;
+    	MapLocation[] enemyTowers = rc.senseEnemyTowerLocations();
+    	for(MapLocation m: enemyTowers){
+    		if(ml.distanceSquaredTo(m) <= RobotType.TOWER.attackRadiusSquared){
+    			return false;
+    		}
+    	}
+    	if(ml.distanceSquaredTo(theirHQ) <= RobotType.HQ.attackRadiusSquared){
+    		return false;
+    	}
+    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 20, theirTeam);
+    	for(RobotInfo enemy:enemies){
+    		if(ml.distanceSquaredTo(enemy.location) <= enemy.type.attackRadiusSquared){
+    			return false;
+    		}
+    	}
+    	return true;
+    }
+    
 }
