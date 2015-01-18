@@ -18,6 +18,7 @@ public class TankFactory extends BaseBot{
             Direction newDir = getSpawnDirection(RobotType.TANK);
             if (newDir != null) {
                 rc.spawn(newDir, RobotType.TANK);
+                rc.broadcast(5000, rc.readBroadcast(5000) + RobotType.TANK.oreCost);
                 rc.broadcast(getUnit(RobotType.TANK) + 10, numTanks + 1);
             }
         }

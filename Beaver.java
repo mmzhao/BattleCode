@@ -133,8 +133,7 @@ public class Beaver extends BaseBot {
 	// }
 	// }
 	//
-	public boolean tryBuild(Direction d, RobotType type)
-			throws GameActionException {
+	public boolean tryBuild(Direction d, RobotType type) throws GameActionException {
 		int offsetIndex = 0;
 		int[] offsets = { 0, 1, -1, 2, -2, 3, -3, 4 };
 		int dirint = directionToInt(d);
@@ -145,6 +144,7 @@ public class Beaver extends BaseBot {
 		}
 		if (offsetIndex < 8) {
 			rc.build(directions[(dirint + offsets[offsetIndex] + 8) % 8], type);
+			rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
 			return true;
 		}
 		return false;

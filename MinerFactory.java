@@ -12,13 +12,13 @@ public class MinerFactory extends BaseBot {
 		int numMiners = rc.readBroadcast(getUnit(RobotType.MINER) + 10);
 		rc.setIndicatorString(0, "Number of Miners: " + numMiners);
 		if (rc.isCoreReady()) {
-			if (numMiners < 5 && rc.getTeamOre() > RobotType.MINER.oreCost) {
+			if (numMiners < 15 && rc.getTeamOre() > RobotType.MINER.oreCost) {
 				spawn();
 			}
-			else if(rc.getTeamOre() > RobotType.MINER.oreCost + RobotType.DRONE.oreCost){
-				spawn();
-				rc.broadcast(getUnit(RobotType.MINER) + 10, numMiners + 1);
-			}
+//			else if(rc.getTeamOre() > RobotType.MINER.oreCost + RobotType.DRONE.oreCost){
+//				spawn();
+//				rc.broadcast(getUnit(RobotType.MINER) + 10, numMiners + 1);
+//			}
 		}
 		
 		transferSupplies();
@@ -30,6 +30,7 @@ public class MinerFactory extends BaseBot {
 		Direction newDir = getSpawnDirection(RobotType.MINER);
 		if (newDir != null) {
 			rc.spawn(newDir, RobotType.MINER);
+            rc.broadcast(5000, rc.readBroadcast(5000) + RobotType.MINER.oreCost);
 		}
 	}
 

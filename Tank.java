@@ -46,13 +46,9 @@ public class Tank extends BaseBot{
 	            int rallyX = rc.readBroadcast(1001);
 	            int rallyY = rc.readBroadcast(1002);
 	            MapLocation rallyPoint = new MapLocation(rallyX, rallyY);
-	            rc.setIndicatorString(0, rallyX + " " + rallyY);
-	            move.startBug(rallyPoint);
-	            Direction newDir = move.getNextMove();
-	
-	            if (newDir != Direction.NONE && newDir != Direction.OMNI) {
-	                rc.move(newDir);
-	            } 
+//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
+//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
+	            tryMove(rc.getLocation().directionTo(rallyPoint));
         	}
         }
         

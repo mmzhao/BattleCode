@@ -33,11 +33,20 @@ import battlecode.common.TerrainTile;
 //18 -- number of commanders
 //19 -- number of computers
 
-//1000 -- number of solders defending base
+//100 -- max n
+//1n1 -- hit squad rally x
+//1n2 -- hit squad rally y
+//1n3 -- number of drones in hit squad n
+//1n4 -- ID of target
+
+
+//1000 -- number of soldiers defending base
 //1001 -- rally x position
 //1002 -- rally y position
+//1003 -- no longer stay out of range
 
-//2000-8 -- block values for path selection
+
+//5000 -- total ore used
 
 public class HQ extends BaseBot {
 
@@ -48,25 +57,7 @@ public class HQ extends BaseBot {
 	public boolean isFinished;
 	public int xpos, ypos;
 
-//	int[][] map;
-//	int[][] blockValue;
-//	int stepx, stepy;
-//	int distx, disty;
-//	int minValue;
-//	String bestPath;
-//	int index = 0;
 
-
-//	String[] paths = { "111", "0211", "0121", "0112", "2011", "2101", "2110",
-//			"1021", "1012", "1201", "1210", "1102", "1120", "00221", "00212",
-//			"00122", "02021", "02012", "02201", "02210", "02102", "02120",
-//			"01022", "01202", "01220", "20021", "20012", "20201", "20210",
-//			"20102", "20120", "22001", "22010", "22100", "21002", "21020",
-//			"21200", "10022", "10202", "10220", "12002", "12020", "12200",
-//			"000222", "002022", "002202", "002220", "020022", "020202",
-//			"020220", "022002", "022020", "022200", "200022", "200202",
-//			"200220", "202002", "202020", "202200", "220002", "220020",
-//			"220200", "222000" };
 
 	public HQ(RobotController rc) {
 		super(rc);
@@ -82,8 +73,10 @@ public class HQ extends BaseBot {
 
 	public void execute() throws GameActionException {
 		
+		//amount of every ally unit
 		getInitialInfo();
 
+		//find out about HQ defenders
 		int numDefenders = 0;
 		RobotInfo[] ri2 = rc.senseNearbyRobots(10, rc.getTeam());
 		for (int i = 0; i < ri2.length; i++) {
@@ -92,45 +85,35 @@ public class HQ extends BaseBot {
 			}
 		}
 
+		//attack if possible
 		if (rc.isWeaponReady()) {
 			attackLeastHealthEnemy(getEnemiesInAttackingRange());
 		}
 
-		if (rc.isCoreReady()) {
-			if (units[getUnit(RobotType.BEAVER)] < 2) {
-				if (rc.getTeamOre() > 100) {
-					Direction newDir = getSpawnDirection(RobotType.BEAVER);
-					if (newDir != null) {
-						rc.spawn(newDir, RobotType.BEAVER);
-						units[getUnit(RobotType.BEAVER)]++;
-					}
-				}
-			}
-		}
+		//always have 2 beavers up
+		keepingTwoBeavers();
 		
-		if (buildings[getBuilding(RobotType.MINERFACTORY)]
-				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 1) {
-			addToQueue(getBuilding(RobotType.MINERFACTORY));
-		}
-
-		if (buildings[getBuilding(RobotType.HELIPAD)]
-						+ inQueue[getBuilding(RobotType.HELIPAD)] < Clock.getRoundNum() / 100) {
-			addToQueue(getBuilding(RobotType.HELIPAD));
-		}
+		//set up strat
+//		soldierRushStrat();
+		tankRushStrat();
 		
-//		if(buildings[getBuilding(RobotType.BARRACKS)] > 0 && units[getUnit(RobotType.MINER)] >= 15 && buildings[getBuilding(RobotType.TANKFACTORY)] < 3){
-//
-//			if(rc.checkDependencyProgress(RobotType.BARRACKS) == DependencyProgress.DONE){
-//				addToQueue(getBuilding(RobotType.TANKFACTORY));
-//			}
+		//set up rally point
+		MapLocation rallyPoint = normalRushRally();
+//		rallyPoint = theirHQ;
+		
+		
+		//squads for drones
+//		String squadCounts = "num squads: " + rc.readBroadcast(100) + "        ";
+//		for(int i = 0; i < rc.readBroadcast(100); i++){
+//			squadCounts += rc.readBroadcast(103 + i * 10) + " ";
 //		}
 		
-		MapLocation rallyPoint = new MapLocation(rc.readBroadcast(1001),
-				rc.readBroadcast(1002));
-
-		rallyPoint = theirHQ;
+//		setHitSquads();
 		
-
+//		rc.setIndicatorString(0, squadCounts);
+		
+		
+		
 		for (int i = 1; i < 10; i++) {
 			rc.broadcast(i, buildings[i]);
 			rc.broadcast(i + 10, units[i]);
@@ -138,29 +121,61 @@ public class HQ extends BaseBot {
 		rc.broadcast(1000, numDefenders);
 		rc.broadcast(1001, rallyPoint.x);
 		rc.broadcast(1002, rallyPoint.y);
+		
+//		System.out.println(rallyPoint.x + " " + rallyPoint.y);
 
 		// reset Queue info
 		setUpQueueInfo();
 
+		
+		rc.setIndicatorString(1, rc.readBroadcast(5000) + "");
+		
 		transferSupplies();
 
-//		rc.setIndicatorString(0, blockValue[0][0] + " " + blockValue[0][1] + " " + blockValue[0][2] + " " + blockValue[1][0] + " " + blockValue[1][1] + " " + blockValue[1][2] + " " + blockValue[2][0] + " " + blockValue[2][1] + " " + blockValue[2][2]);
-//		int sum = 0;
-//		for(int i = 0; i < map.length; i++){
-//			for(int j = 0; j < map[0].length; j++){
-//				sum += map[i][j];
-//			}
-//		}
-//		rc.setIndicatorString(0, sum + "");
-//		if (!isFinished) {
-//			analyzeMap();
-//		}
 
 
 		rc.yield();
 	}
 	
-	public void buildStratDroneCircle() throws GameActionException{
+	public void keepingTwoBeavers() throws GameActionException{
+		if (rc.isCoreReady()) {
+			if (units[getUnit(RobotType.BEAVER)] < 2) {
+				if (rc.getTeamOre() > 100) {
+					Direction newDir = getSpawnDirection(RobotType.BEAVER);
+					if (newDir != null) {
+						rc.spawn(newDir, RobotType.BEAVER);
+						rc.broadcast(5000, rc.readBroadcast(5000) + RobotType.BEAVER.oreCost);
+						units[getUnit(RobotType.BEAVER)]++;
+					}
+				}
+			}
+		}
+	}
+	
+	public void setHitSquads() throws GameActionException{ //2 drones per target
+		for(int i = 0; i < rc.readBroadcast(100); i++){
+			rc.broadcast(101 + 10 * i, 0);
+			rc.broadcast(102 + 10 * i, 0);
+//			rc.broadcast(103 + 10 * i, 0);
+		}
+		int index = 0;
+//		RobotInfo[] targets = rc.senseNearbyRobots(myHQ, (int)(Math.pow(Clock.getRoundNum(), 2) / 200), theirTeam);
+		RobotInfo[] targets = rc.senseNearbyRobots(myHQ, 10000000, theirTeam);
+		for(RobotInfo t: targets){
+			if(t.type.attackRadiusSquared >= RobotType.DRONE.attackRadiusSquared){
+				if(t.location.distanceSquaredTo(myHQ) > (int)(Math.pow(Clock.getRoundNum(), 2) / 200)){
+					continue;
+				}
+			}
+			rc.broadcast(101 + 10 * index, t.location.x);
+			rc.broadcast(102 + 10 * index, t.location.y);
+			rc.broadcast(103 + 10 * index, t.ID);
+			index++;
+		}
+		rc.broadcast(100, index);
+	}
+	
+	public void droneRushStrat() throws GameActionException{
 		if (rc.isCoreReady()) {
 			if (units[getUnit(RobotType.BEAVER)] < 1) {
 				if (rc.getTeamOre() > 100) {
@@ -184,18 +199,7 @@ public class HQ extends BaseBot {
 		}
 	}
 	
-	public void originalRushStrat() throws GameActionException{
-		if (rc.isCoreReady()) {
-			if (units[getUnit(RobotType.BEAVER)] < 5) {
-				if (rc.getTeamOre() > 100) {
-					Direction newDir = getSpawnDirection(RobotType.BEAVER);
-					if (newDir != null) {
-						rc.spawn(newDir, RobotType.BEAVER);
-						units[getUnit(RobotType.BEAVER)]++;
-					}
-				}
-			}
-		}
+	public void tankRushStrat() throws GameActionException{
 		
 		if (buildings[getBuilding(RobotType.MINERFACTORY)]
 				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 3) {
@@ -203,19 +207,37 @@ public class HQ extends BaseBot {
 		}
 
 		if (buildings[getBuilding(RobotType.BARRACKS)]
-						+ inQueue[getBuilding(RobotType.BARRACKS)] < 5) {
+						+ inQueue[getBuilding(RobotType.BARRACKS)] < 1) {
 			addToQueue(getBuilding(RobotType.BARRACKS));
 		}
-		//can add tanks too
+		
+		if (buildings[getBuilding(RobotType.MINERFACTORY)] > 1 && buildings[getBuilding(RobotType.TANKFACTORY)]
+				+ inQueue[getBuilding(RobotType.TANKFACTORY)] < 4) {
+			addToQueue(getBuilding(RobotType.TANKFACTORY));
+		}
 	}
 	
-	public void normalRushStrat() throws GameActionException{
+	public void soldierRushStrat() throws GameActionException{
+		
+		if (buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 3) {
+			addToQueue(getBuilding(RobotType.MINERFACTORY));
+		}
+
+		if (buildings[getBuilding(RobotType.BARRACKS)]
+						+ inQueue[getBuilding(RobotType.BARRACKS)] < (int) (Clock.getRoundNum() / 200) + 1) {
+			addToQueue(getBuilding(RobotType.BARRACKS));
+		}
+	}
+	
+	public MapLocation normalRushRally() throws GameActionException{
 		MapLocation rallyPoint = new MapLocation(rc.readBroadcast(1001),
 				rc.readBroadcast(1002));
 
-		if (Clock.getRoundNum() < 1600) {
-			MapLocation initialRally = rc.getLocation().add(
-					rc.getLocation().directionTo(theirHQ), 7);
+		if (Clock.getRoundNum() < 1500) {
+//			MapLocation initialRally = rc.getLocation().add(
+//					rc.getLocation().directionTo(theirHQ), 7);
+			MapLocation initialRally = closestLocation(theirHQ, rc.senseTowerLocations());
 			rallyPoint = initialRally;
 		} else {
 			MapLocation[] enemyTowers = rc.senseEnemyTowerLocations();
@@ -229,7 +251,9 @@ public class HQ extends BaseBot {
 			} else {
 				rallyPoint = theirHQ;
 			}
+			rc.broadcast(1003, 1);
 		}
+		return rallyPoint;
 	}
 
 	public void getInitialInfo() throws GameActionException {
@@ -303,7 +327,7 @@ public class HQ extends BaseBot {
 			inQueue[queue % 10]++;
 			queue /= 10;
 		}
-		 rc.setIndicatorString(0, "Queue: " + rc.readBroadcast(0));
+//		 rc.setIndicatorString(0, "Queue: " + rc.readBroadcast(0));
 		 rc.setIndicatorString(2, buildings[1] + " " + buildings[2] + " "
 		 + buildings[3] + " " + buildings[4] + " " + buildings[5] + " "
 		 + buildings[6] + " " + buildings[7] + " " + buildings[8] + " "
@@ -507,3 +531,23 @@ public class HQ extends BaseBot {
 	// return new Path(path, min);
 	//
 	// }
+
+//int[][] map;
+//int[][] blockValue;
+//int stepx, stepy;
+//int distx, disty;
+//int minValue;
+//String bestPath;
+//int index = 0;
+
+
+//String[] paths = { "111", "0211", "0121", "0112", "2011", "2101", "2110",
+//		"1021", "1012", "1201", "1210", "1102", "1120", "00221", "00212",
+//		"00122", "02021", "02012", "02201", "02210", "02102", "02120",
+//		"01022", "01202", "01220", "20021", "20012", "20201", "20210",
+//		"20102", "20120", "22001", "22010", "22100", "21002", "21020",
+//		"21200", "10022", "10202", "10220", "12002", "12020", "12200",
+//		"000222", "002022", "002202", "002220", "020022", "020202",
+//		"020220", "022002", "022020", "022200", "200022", "200202",
+//		"200220", "202002", "202020", "202200", "220002", "220020",
+//		"220200", "222000" };

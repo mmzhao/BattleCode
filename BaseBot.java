@@ -146,7 +146,7 @@ public class BaseBot {
 		}
 	}
     
-    public boolean isSafe(MapLocation ml){
+    public boolean isSafe(MapLocation ml) throws GameActionException{
     	MapLocation[] enemyTowers = rc.senseEnemyTowerLocations();
     	for(MapLocation m: enemyTowers){
     		if(ml.distanceSquaredTo(m) <= RobotType.TOWER.attackRadiusSquared){
@@ -155,6 +155,12 @@ public class BaseBot {
     	}
     	if(ml.distanceSquaredTo(theirHQ) <= RobotType.HQ.attackRadiusSquared){
     		return false;
+    	}
+    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 15, theirTeam);
+    	for(RobotInfo enemy:enemies){
+    		if(ml.distanceSquaredTo(enemy.location) <= enemy.type.attackRadiusSquared){
+    			return false;
+    		}
     	}
     	return true;
     }

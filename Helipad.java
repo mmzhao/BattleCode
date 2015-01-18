@@ -13,6 +13,7 @@ public class Helipad  extends BaseBot {
             Direction newDir = getSpawnDirection(RobotType.DRONE);
             if (newDir != null) {
                 rc.spawn(newDir, RobotType.DRONE);
+                rc.broadcast(5000, rc.readBroadcast(5000) + RobotType.DRONE.oreCost);
                 rc.broadcast(getUnit(RobotType.DRONE) + 10, numDrones + 1);
             }
         }
