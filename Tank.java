@@ -10,23 +10,17 @@ import battlecode.common.RobotType;
 
 public class Tank extends BaseBot{
 
-	private Mover move;
-	private MapLocation targetLoc;
-	private boolean defender;
+	private int towerToProtect;
+	private boolean attackTarget;
 	
     public Tank(RobotController rc) throws GameActionException {
         super(rc);
-        move = new Mover(rc);
-        targetLoc = null;
-        defender = false;
-//        if(rc.readBroadcast(1000) < 10){
-//        	defender = true;
-//        	rc.broadcast(1000, rc.readBroadcast(6) + 1);
-//        }
+        towerToProtect = -1;
+        attackTarget = false;
     }
 
     public void execute() throws GameActionException {
-    	rc.setIndicatorString(1, rc.getType().supplyUpkeep + "");
+    	rc.setIndicatorString(1, towerToProtect + "");
         RobotInfo[] enemies = getEnemiesInAttackingRange(rc.getType());
 
         if (enemies.length > 0) {
@@ -35,22 +29,50 @@ public class Tank extends BaseBot{
                 attackLeastHealthEnemy(enemies);
             }
         }
-        if (rc.isCoreReady()) {
-        	if(defender){
-        		if(rc.getLocation().distanceSquaredTo(myHQ) > 10){
-        			tryMove(rc.getLocation().directionTo(myHQ));
-        		}
-        		else{
-        			tryMove(directions[rand.nextInt(8)]);
+        
+        towerToProtect = -1;
+        int closestDist = Integer.MAX_VALUE;
+        for(int i = 0; i < rc.readBroadcast(20); i++){
+        	int numProtect = rc.readBroadcast(23 + 10 * i);
+        	if(numProtect < 2){
+        		towerToProtect = i;
+        		break;
+        	}
+        	if(numProtect < 3){
+        		MapLocation ml = new MapLocation(rc.readBroadcast(21 + 10 * i), rc.readBroadcast(22 + 10 * i));
+        		int dist = rc.getLocation().distanceSquaredTo(ml);
+        		if(dist < closestDist){
+        			closestDist = dist;
+        			towerToProtect = i;
         		}
         	}
+        }
+        if(towerToProtect != -1){
+        	rc.broadcast(23 + 10 * towerToProtect, rc.readBroadcast(23 + 10 * towerToProtect) + 1);
+        }
+        
+        if (rc.isCoreReady()) {
+        	if(towerToProtect != -1){
+        		MapLocation ml = new MapLocation(rc.readBroadcast(21 + 10 * towerToProtect), rc.readBroadcast(22 + 10 * towerToProtect));
+        		tryMove(rc.getLocation().directionTo(ml));
+        	}
         	else{
-	            int rallyX = rc.readBroadcast(1001);
-	            int rallyY = rc.readBroadcast(1002);
-	            MapLocation rallyPoint = new MapLocation(rallyX, rallyY);
-//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
-//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
-	            tryMove(rc.getLocation().directionTo(rallyPoint));
+        		if(rc.readBroadcast(2000) == 1){
+        			attackTarget = true;
+        			int rallyX = rc.readBroadcast(2001);
+    	            int rallyY = rc.readBroadcast(2002);
+    	            MapLocation rallyPoint = new MapLocation(rallyX, rallyY);
+    	            tryMove(rc.getLocation().directionTo(rallyPoint));
+        		}
+        		else{
+        			attackTarget = false;
+		            int rallyX = rc.readBroadcast(1001);
+		            int rallyY = rc.readBroadcast(1002);
+		            MapLocation rallyPoint = new MapLocation(rallyX, rallyY);
+	//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
+	//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
+		            tryMove(rc.getLocation().directionTo(rallyPoint));
+        		}
         	}
         }
         
@@ -60,7 +82,7 @@ public class Tank extends BaseBot{
     }
 	
     public boolean isSafe(MapLocation ml) throws GameActionException{
-    	if(Clock.getRoundNum() > 1500) return true;
+    	if(rc.readBroadcast(4000) == 1 || rc.readBroadcast(3000) == 1) return true;
     	MapLocation[] enemyTowers = rc.senseEnemyTowerLocations();
     	for(MapLocation m: enemyTowers){
     		if(ml.distanceSquaredTo(m) <= RobotType.TOWER.attackRadiusSquared){
@@ -70,6 +92,7 @@ public class Tank extends BaseBot{
     	if(ml.distanceSquaredTo(theirHQ) <= RobotType.HQ.attackRadiusSquared){
     		return false;
     	}
+    	if(attackTarget) return true;
     	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 20, theirTeam);
     	for(RobotInfo enemy:enemies){
     		if(ml.distanceSquaredTo(enemy.location) <= enemy.type.attackRadiusSquared){

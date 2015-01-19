@@ -24,14 +24,24 @@ public class Miner extends BaseBot {
                 attackLeastHealthEnemy(enemies);
             }
         }
+        
+        
     	if (rc.isCoreReady()) {
-    		if(rc.senseOre(rc.getLocation()) >= 5){
-	    		if(rc.canMine()){
-	    			rc.mine();
-	    		}
-	    	}
+    		if(rc.readBroadcast(4000) == 1){
+    	        int rallyX = rc.readBroadcast(1001);
+    	        int rallyY = rc.readBroadcast(1002);
+    	        MapLocation rallyPoint = new MapLocation(rallyX, rallyY);
+    	        tryMove(rc.getLocation().directionTo(rallyPoint));
+            }
     		else{
-    			optimalMove();
+	    		if(rc.senseOre(rc.getLocation()) >= 5){
+		    		if(rc.canMine()){
+		    			rc.mine();
+		    		}
+		    	}
+	    		else{
+	    			optimalMove();
+	    		}
     		}
 			
     	}
@@ -93,6 +103,7 @@ public class Miner extends BaseBot {
 	}
 
 	public boolean isSafe(MapLocation ml) throws GameActionException{
+		if(rc.readBroadcast(4000) == 1) return true;
     	MapLocation[] enemyTowers = rc.senseEnemyTowerLocations();
     	for(MapLocation m: enemyTowers){
     		if(ml.distanceSquaredTo(m) <= RobotType.TOWER.attackRadiusSquared){

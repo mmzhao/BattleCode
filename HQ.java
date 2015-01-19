@@ -33,6 +33,11 @@ import battlecode.common.TerrainTile;
 //18 -- number of commanders
 //19 -- number of computers
 
+//20 -- number of turrets
+//21 + 10n -- x position for turret n
+//22 + 10n -- y position for turret n
+//23 + 10n -- number of defenders for turret n
+
 //100 -- max n
 //1n1 -- hit squad rally x
 //1n2 -- hit squad rally y
@@ -45,6 +50,12 @@ import battlecode.common.TerrainTile;
 //1002 -- rally y position
 //1003 -- no longer stay out of range
 
+//2000 -- target boolean, 0-no, 1-yes
+//2001 -- extra unit target point x
+//2002 -- extra unit target point y
+
+//3000 -- attacking units yolo rush
+//4000 -- yolo rush mode, 0-no, 1-yes
 
 //5000 -- total ore used
 
@@ -77,29 +88,43 @@ public class HQ extends BaseBot {
 		getInitialInfo();
 
 		//find out about HQ defenders
-		int numDefenders = 0;
-		RobotInfo[] ri2 = rc.senseNearbyRobots(10, rc.getTeam());
-		for (int i = 0; i < ri2.length; i++) {
-			if (ri2[i].type == RobotType.SOLDIER) {
-				numDefenders++;
-			}
-		}
+//		int numDefenders = 0;
+//		RobotInfo[] ri2 = rc.senseNearbyRobots(10, rc.getTeam());
+//		for (int i = 0; i < ri2.length; i++) {
+//			if (ri2[i].type == RobotType.SOLDIER) {
+//				numDefenders++;
+//			}
+//		}
 
 		//attack if possible
 		if (rc.isWeaponReady()) {
 			attackLeastHealthEnemy(getEnemiesInAttackingRange(rc.getType()));
 		}
 
-		//always have 2 beavers up
-		keepingSomeBeavers(2);
+		//always have 3 beavers up
+		keepingSomeBeavers(3);
 		
 		//set up strat
 //		soldierRushStrat();
 		tankStrat();
 		
 		//set up rally point
-		MapLocation rallyPoint = normalRushRally();
-//		rallyPoint = theirHQ;
+		MapLocation rallyPoint;
+		rallyPoint = normalRushRally();
+		if(Clock.getRoundNum() < 1200){
+			setTarget();
+		}
+		else if(Clock.getRoundNum() < 1500){
+			rc.broadcast(2000, 0); //remove all targets
+			rc.broadcast(3000, 1); //start attack rush
+			rallyPoint = nextTower();
+		}
+		else{
+			rc.broadcast(4000, 1); //throw everything
+			rallyPoint = nextTower();
+		}
+//		rallyPoint = myHQ;
+		
 		
 		
 		//squads for drones
@@ -118,7 +143,7 @@ public class HQ extends BaseBot {
 			rc.broadcast(i, buildings[i]);
 			rc.broadcast(i + 10, units[i]);
 		}
-		rc.broadcast(1000, numDefenders);
+//		rc.broadcast(1000, numDefenders);
 		rc.broadcast(1001, rallyPoint.x);
 		rc.broadcast(1002, rallyPoint.y);
 		
@@ -136,6 +161,67 @@ public class HQ extends BaseBot {
 
 		rc.yield();
 	}
+	
+	public MapLocation nextTower(){
+		MapLocation targetTower = null;
+		int minProtection = Integer.MAX_VALUE;
+		MapLocation[] towers = rc.senseEnemyTowerLocations();
+		for(MapLocation t1: towers){
+			int prot = 0;
+			for(MapLocation t2: towers){
+				if(t1.distanceSquaredTo(t2) == 0){
+					//it's the same tower
+				}
+				else if(t1.distanceSquaredTo(t2) <= 25){
+					prot += 2;
+				}
+				else if(t1.distanceSquaredTo(t2) <= 36){
+					prot++;
+				}
+			}
+			if(prot < minProtection){
+				minProtection = prot;
+				targetTower = t1;
+			}
+		}
+		if(targetTower == null) targetTower = theirHQ;
+		return targetTower;
+	}
+	
+	public void setTarget() throws GameActionException{ //2 drones per target
+		rc.broadcast(2000, 0);
+		rc.broadcast(2001, 0);
+		rc.broadcast(2002, 0);
+		int minIndex = -1;
+		int minDist = Integer.MAX_VALUE;
+		RobotInfo[] targets = rc.senseNearbyRobots(myHQ, 10000000, theirTeam);
+		MapLocation[] towers = rc.senseTowerLocations();
+		for(int i = 0; i < targets.length; i++){
+			if(targets[i].type == RobotType.HQ || targets[i].type == RobotType.TOWER){
+				continue;
+			}
+			for(int j = 0; j < towers.length; j++){
+				int dist = targets[i].location.distanceSquaredTo(towers[j]);
+				if(dist < minDist){
+					minDist = dist;
+					minIndex = i;
+				}
+			}
+			int dist = targets[i].location.distanceSquaredTo(myHQ);
+			if(dist < minDist){
+				minDist = dist;
+				minIndex = i;
+			}
+		}
+		
+		if(minIndex != -1){
+			rc.broadcast(2000, 1);
+			rc.broadcast(2001, targets[minIndex].location.x);
+			rc.broadcast(2002, targets[minIndex].location.y);
+			rc.setIndicatorDot(targets[minIndex].location, 100, 0, 0);
+		}
+	}
+	
 	
 	public void keepingSomeBeavers(int num) throws GameActionException{
 		if (rc.isCoreReady()) {
@@ -162,11 +248,12 @@ public class HQ extends BaseBot {
 //		RobotInfo[] targets = rc.senseNearbyRobots(myHQ, (int)(Math.pow(Clock.getRoundNum(), 2) / 200), theirTeam);
 		RobotInfo[] targets = rc.senseNearbyRobots(myHQ, 10000000, theirTeam);
 		for(RobotInfo t: targets){
-			if(t.type.attackRadiusSquared >= RobotType.DRONE.attackRadiusSquared){
-				if(t.location.distanceSquaredTo(myHQ) > (int)(Math.pow(Clock.getRoundNum(), 2) / 200)){
-					continue;
-				}
-			}
+//			if(t.type.attackRadiusSquared >= RobotType.DRONE.attackRadiusSquared){
+//				if(t.location.distanceSquaredTo(myHQ) > (int)(Math.pow(Clock.getRoundNum(), 2) / 200)){
+//					continue;
+//				}
+//			}
+			
 			rc.broadcast(101 + 10 * index, t.location.x);
 			rc.broadcast(102 + 10 * index, t.location.y);
 			rc.broadcast(103 + 10 * index, t.ID);
@@ -206,7 +293,7 @@ public class HQ extends BaseBot {
 			addToQueue(getBuilding(RobotType.MINERFACTORY));
 		}
 
-		else if (buildings[getBuilding(RobotType.SUPPLYDEPOT)] > 0 && buildings[getBuilding(RobotType.BARRACKS)]
+		else if (buildings[getBuilding(RobotType.BARRACKS)]
 				+ inQueue[getBuilding(RobotType.BARRACKS)] < 1) {
 			addToQueue(getBuilding(RobotType.BARRACKS));
 		}
@@ -217,7 +304,7 @@ public class HQ extends BaseBot {
 		}
 		
 		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
-						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) (Clock.getRoundNum() / 200) - 1) {
+						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 200) / 100)) {
 			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
 		}
 	}
@@ -322,8 +409,16 @@ public class HQ extends BaseBot {
 			} else if (ri[i].type == RobotType.HANDWASHSTATION) {
 				buildings[9]++;
 			}
-
 		}
+		
+		MapLocation[] towers = rc.senseTowerLocations();
+		rc.broadcast(20, towers.length);
+		for(int i = 0; i < towers.length; i++){
+			rc.broadcast(21 + 10 * i, towers[i].x);
+			rc.broadcast(22 + 10 * i, towers[i].y);
+			rc.broadcast(23 + 10 * i, rc.senseNearbyRobots(towers[i], 9, myTeam).length);
+		}
+		
 	}
 
 	public void addToQueue(int num) throws GameActionException {

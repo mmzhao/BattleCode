@@ -159,6 +159,7 @@ public class Beaver extends BaseBot {
 					rc.build(Direction.WEST, type);
 					return true;
 				}
+//				rc.setIndicatorString(2, "North: " + rc.canBuild(Direction.NORTH, type) + " East: " + rc.canBuild(Direction.EAST, type) + " South: " + rc.canBuild(Direction.SOUTH, type) + " West: " + rc.canBuild(Direction.WEST, type));
 				moveOutwards();
 			}
 		}
@@ -174,50 +175,9 @@ public class Beaver extends BaseBot {
 
 	public void mineBehavior() throws GameActionException {
 		if (rc.isCoreReady()) {
-			// if(Clock.getRoundNum() < 500 &&
-			// 		rc.getLocation().distanceSquaredTo(rc.senseHQLocation()) < 10){//
-			// 		tryMove(rc.senseHQLocation().directionTo(rc.getLocation()));
-//			if (rc.senseOre(rc.getLocation()) >= 4) {
-//				if (rc.canMine()) {
-//					rc.mine();
-//				}
-//			}
-//			else{
-//				int fate = rand.nextInt(1000);
-//				if (fate < 750) {
-//					tryMove(directions[rand.nextInt(8)]);
-//				} else {
-//					tryMove(rc.getLocation().directionTo(rc.senseEnemyHQLocation()));
-//				}
-//			}
 			tryMove(rc.getLocation().directionTo(myHQ));
 		}
 	}
-
-	// public void buildBehavior() throws GameActionException {
-	// if (building) {
-	// if (!rc.senseRobotAtLocation(rc.getLocation()).type.isBuilding){
-	// //building done:
-	// building = false;
-	// inQueue[getBuilding(toBuild)]--;
-	// toBuild = null;
-	// state = State.IDLE;
-	// } else {
-	// //extra time: do calculations
-	// }
-	// }
-	// else {
-	// if (rc.isCoreReady()){
-	// if (rc.getTeamOre() >= toBuild.oreCost){
-	// tryBuild(directions[rand.nextInt(8)],toBuild);
-	// }
-	// }
-	// else {
-	// //extra time: do calculations
-	// }
-	// }
-	// }
-	//
 
 
 }

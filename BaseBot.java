@@ -116,18 +116,24 @@ public class BaseBot {
     			toTransfer = ri.location;
     			transferAmount = (rc.getSupplyLevel() - ri.supplyLevel) / 2;
     		}
-//    		if(ri.location.distanceSquaredTo(theirHQ) > HQDistance || ri.type == RobotType.BEAVER || Clock.getRoundNum() < 1000){
-//    			if(ri.supplyLevel < ri.type.supplyUpkeep){
-//    				rc.transferSupplies((int)(ri.type.supplyUpkeep - ri.supplyLevel + 1), ri.location);
-//    			}
-//    		}
-//    		else if(ri.supplyLevel < rc.getSupplyLevel()){
-//    			rc.transferSupplies((int)((rc.getSupplyLevel() - ri.supplyLevel)/2), ri.location);
-//    		}
-    		
     	}
     	if(toTransfer != null && rc.senseRobotAtLocation(toTransfer) != null){
     		rc.transferSupplies((int)(transferAmount), toTransfer);
+    	}
+    	
+    	//transfer if close to death
+    	if(rc.getHealth() < 10){
+    		double minSupplyDivHealth = rc.getSupplyLevel()/rc.getHealth();
+        	MapLocation toTransfer2 = null;
+    		for(RobotInfo ri:transferable){
+        		if(ri.supplyLevel/ri.health < minSupplyDivHealth){
+        			minSupplyDivHealth = ri.supplyLevel/ri.health;
+        			toTransfer = ri.location;
+        		}
+        	}
+        	if(toTransfer2 != null && rc.senseRobotAtLocation(toTransfer2) != null){
+        		rc.transferSupplies((int)(rc.getSupplyLevel() - rc.getType().supplyUpkeep * 2), toTransfer2);
+        	}
     	}
     }
     
