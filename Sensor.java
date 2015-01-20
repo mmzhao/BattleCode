@@ -64,7 +64,7 @@ public class Sensor {
 					if (ally.location.distanceSquaredTo(cur) <= attackRadiusSq) 
 						nearbyAllies[5]++;
 					else
-						nearbyAllies[12]++;
+						nearbyAllies[11]++;
 					break;
 				default: break;
 			}
@@ -109,11 +109,17 @@ public class Sensor {
 					if (enemy.location.distanceSquaredTo(cur) <= attackRadiusSq) 
 						nearbyAllies[5]++;
 					else
-						nearbyAllies[12]++;
+						nearbyAllies[11]++;
 					break;
 				default: break;
 			}
 		}
+	}
+	
+	public boolean enemyHasLaunchers() {
+		if (nearbyEnemies[4] > 0 || nearbyEnemies[10] > 0)
+			return true;
+		return false;
 	}
 	
 }
