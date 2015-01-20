@@ -2,6 +2,7 @@ package testing;
 
 import battlecode.common.*;
 
+//SO SKETCH MININGSPOT
 public class Miner extends BaseBot {
 
 	public MapLocation targetLoc;
@@ -9,6 +10,7 @@ public class Miner extends BaseBot {
 	private boolean attackTarget;
 	public boolean frontliner;
 	public int turnsSinceMine;
+	public MapLocation miningSpot;
 
 	public Miner(RobotController rc) {
 		super(rc);
@@ -17,6 +19,7 @@ public class Miner extends BaseBot {
 		frontliner = false;
 		turnsSinceMine = 0;
 		attackTarget = false;
+		miningSpot = null;
 	}
 
 	public void execute() throws GameActionException {
@@ -101,7 +104,8 @@ public class Miner extends BaseBot {
 		            int rallyY = rc.readBroadcast(2002);
 		            targetLoc = new MapLocation(rallyX, rallyY);
 //		            System.out.println(targetLoc.distanceSquaredTo(rc.getLocation()));
-		            if(targetLoc.distanceSquaredTo(rc.getLocation()) <= 25){
+		            if(targetLoc.distanceSquaredTo(rc.getLocation()) <= 36){
+//		            	frontliner = true;
 		            	tryMove(rc.getLocation().directionTo(targetLoc));
 		            }
 		            //for running away
@@ -124,24 +128,86 @@ public class Miner extends BaseBot {
     	        tryMove(rc.getLocation().directionTo(targetLoc));
             }
     		if(rc.isCoreReady()){
-	    		if(rc.senseOre(rc.getLocation()) >= 4){
+    			MapLocation currLoc = rc.getLocation();
+	    		if(rc.senseOre(currLoc) >= 4){
 		    		if(rc.canMine()){
-		    			rc.broadcast(2500, (int) (rc.readBroadcast(2500) + (rc.senseOre(rc.getLocation()) / 4)));
+		    			rc.broadcast(2500, (int) (rc.readBroadcast(2500) + (rc.senseOre(currLoc) / 4)));
 		    			rc.mine();
 		    			turnsSinceMine = 0;
+		    			double localValue = assessSpot(currLoc);
+		    			if(localValue > rc.readBroadcast(1503)){
+		    				rc.broadcast(1501, currLoc.x);
+		    				rc.broadcast(1502, currLoc.y);
+		    				rc.broadcast(1503, (int)(localValue));
+		    			}
 		    		}
 		    	}
+	    		else if(miningSpot != null){
+    				tryMove(rc.getLocation().directionTo(miningSpot));
+    			}
 	    		else{
 	    			optimalMove();
 	    		}
     		}
     		
     		turnsSinceMine++;
-    		if(turnsSinceMine > 50){
+    		if(turnsSinceMine > 10){
+    			findGoodSpot(); //SKETCCCHCHHHHH
+    		}
+    		else if(turnsSinceMine > 100){
     			frontliner = true;
     		}
 			
     	}
+	}
+	
+	public void micro() throws GameActionException{
+    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 24, theirTeam);
+    	if(enemies.length == 0) return;
+    	boolean noAttackersInRange = true;
+    	for(RobotInfo e: enemies){
+    		if(e.type.attackRadiusSquared >= e.location.distanceSquaredTo(rc.getLocation())){
+    			noAttackersInRange = false;
+    		}
+    	}
+    	if(noAttackersInRange){ 
+    		return;
+    	}
+    	int totalX = 0;
+    	int totalY = 0;
+    	for(RobotInfo e: enemies){
+    		totalX += e.location.x;
+    		totalY += e.location.y;
+    	}
+    	MapLocation enemyCenter = new MapLocation(totalX/enemies.length, totalY/enemies.length);
+    	tryMove(enemyCenter.directionTo(rc.getLocation()));
+    	
+    }
+	
+	private double assessSpot(MapLocation ml){
+		int value = 0;
+		for(int i = -7; i < 8; i++){
+			for(int j = -7; j < 8; j++){
+				double ore = rc.senseOre(ml.add(i, j));
+				if(ore >= 4){
+					value += ore;
+				}
+			}
+		}
+		return value;
+	}
+	
+	private void findGoodSpot() throws GameActionException {
+//		int closest = Integer.MAX_VALUE;
+//		for(int i = 0; i < rc.readBroadcast(1500); i++){
+//			MapLocation newSpot = new MapLocation(rc.readBroadcast(1501 + 10 * i), rc.readBroadcast(1502 + 10 * i));
+//			int dist = rc.getLocation().distanceSquaredTo(newSpot);
+//			if(dist < closest){
+//				closest = dist;
+//				miningSpot = newSpot;
+//			}
+//		}
+		miningSpot = new MapLocation(rc.readBroadcast(1501), rc.readBroadcast(1502));
 	}
 	
 	public void optimalMove() throws GameActionException{

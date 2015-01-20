@@ -25,11 +25,6 @@ public class Tank extends BaseBot{
     	rc.setIndicatorString(1, towerToProtect + "");
         RobotInfo[] enemies = getEnemiesInAttackingRange(rc.getType());
         
-        //micro
-        if(rc.isCoreReady()){
-        	micro();
-        }
-        
         if (enemies.length > 0) {
             //attack!
             if (rc.isWeaponReady()) {
@@ -37,7 +32,10 @@ public class Tank extends BaseBot{
             }
         }
         
-
+        //micro
+        if(rc.isCoreReady()){
+        	micro();
+        }
         
         if (rc.isCoreReady()) {
     		if(rc.readBroadcast(2000) == 1){
@@ -67,6 +65,30 @@ public class Tank extends BaseBot{
         transferSupplies();
         
         rc.yield();
+    }
+    
+    public void micro() throws GameActionException{
+    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 24, theirTeam);
+    	if(enemies.length == 0) return;
+    	boolean noAttackersInRange = true;
+    	for(RobotInfo e: enemies){
+    		if(e.type == RobotType.TOWER || e.type == RobotType.HQ) continue;
+    		if(e.type.attackRadiusSquared >= e.location.distanceSquaredTo(rc.getLocation())){
+    			noAttackersInRange = false;
+    		}
+    	}
+    	if(noAttackersInRange){ 
+    		return;
+    	}
+    	int totalX = 0;
+    	int totalY = 0;
+    	for(RobotInfo e: enemies){
+    		totalX += e.location.x;
+    		totalY += e.location.y;
+    	}
+    	MapLocation enemyCenter = new MapLocation(totalX/enemies.length, totalY/enemies.length);
+    	tryMove(enemyCenter.directionTo(rc.getLocation()));
+    	
     }
     
     

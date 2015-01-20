@@ -234,6 +234,9 @@ public class BaseBot {
     			minSupply = ri.supplyLevel;
     			toTransfer = ri.location;
     			transferAmount = (rc.getSupplyLevel() - ri.supplyLevel) / 2;
+    			if(getBuilding(rc.getType()) != 0){
+    				transferAmount = rc.getSupplyLevel();
+    			}
     		}
     	}
     	if(toTransfer != null && rc.senseRobotAtLocation(toTransfer) != null){

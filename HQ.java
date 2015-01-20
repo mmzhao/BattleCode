@@ -50,6 +50,11 @@ import battlecode.common.TerrainTile;
 //1002 -- rally y position
 //1003 -- no longer stay out of range
 
+//1500 -- number of good mining spots FOR NOW ONLY USING ONE SPOT
+//15n1 -- mining spot n x position
+//15n2 -- mining spot n y position
+//15n3 -- spot value in 14 by 14 grid
+
 //2000 -- target boolean, 0-no, 1-yes
 //2001 -- extra unit target point x
 //2002 -- extra unit target point y
@@ -89,7 +94,7 @@ public class HQ extends BaseBot {
 
 		//attack if possible
 		if (rc.isWeaponReady()) {
-			attackLeastHealthEnemy(getEnemiesInAttackingRange(rc.getType()));
+			attackForValue(getEnemiesInAttackingRange(rc.getType()));
 		}
 
 		//always have 2 beavers up
@@ -118,10 +123,12 @@ public class HQ extends BaseBot {
 //			}
 //		}
 //		else{
-			tankStratWithCommander();
+//			tankStratWithCommander();
+			tankStrat();
 			
 			//set up rally point
-			rallyPoint = normalRushRally();
+//			rallyPoint = normalRushRally();
+			rallyPoint = new MapLocation((myHQ.x + theirHQ.x)/2, (myHQ.y + theirHQ.y)/2);
 			if(Clock.getRoundNum() < 1500){
 				setTarget();
 			}
@@ -154,7 +161,7 @@ public class HQ extends BaseBot {
 		rc.setIndicatorString(1, "used: "+ rc.readBroadcast(5000) + " mining per turn: " + rc.readBroadcast(2500));
 		
 
-		resetMiningCount();
+		resetMining();
 		
 		transferSupplies();
 
@@ -163,38 +170,39 @@ public class HQ extends BaseBot {
 		rc.yield();
 	}
 	
-	public void resetMiningCount() throws GameActionException{
+	public void resetMining() throws GameActionException{
 		rc.broadcast(2500, 0);
-		
 	}
 
-	public MapLocation nextTower(){
-		MapLocation targetTower = null;
-		int minProtection = Integer.MAX_VALUE;
-		MapLocation[] towers = rc.senseEnemyTowerLocations();
-		for(MapLocation t1: towers){
-			int prot = 0;
-			for(MapLocation t2: towers){
-				if(t1.distanceSquaredTo(t2) == 0){
-					//it's the same tower
-				}
-				else if(t1.distanceSquaredTo(t2) <= 25){
-					prot += 2;
-				}
-				else if(t1.distanceSquaredTo(t2) <= 36){
-					prot++;
-				}
-			}
-			if(prot < minProtection){
-				minProtection = prot;
-				targetTower = t1;
-			}
-		}
-		if(targetTower == null) targetTower = theirHQ;
-		return targetTower;
+	public MapLocation nextTower() throws GameActionException{
+//		MapLocation targetTower = null;
+//		int minProtection = Integer.MAX_VALUE;
+//		MapLocation[] towers = rc.senseEnemyTowerLocations();
+//		for(MapLocation t1: towers){
+//			int prot = 0;
+//			for(MapLocation t2: towers){
+//				if(t1.distanceSquaredTo(t2) == 0){
+//					//it's the same tower
+//				}
+//				else if(t1.distanceSquaredTo(t2) <= 25){
+//					prot += 2;
+//				}
+//				else if(t1.distanceSquaredTo(t2) <= 36){
+//					prot++;
+//				}
+//			}
+//			if(prot < minProtection){
+//				minProtection = prot;
+//				targetTower = t1;
+//			}
+//		}
+//		if(targetTower == null) targetTower = theirHQ;
+//		return targetTower;
+		if(rc.senseEnemyTowerLocations().length == 0) return theirHQ;
+		return closestLocation(new MapLocation(rc.readBroadcast(1001), rc.readBroadcast(1002)), rc.senseEnemyTowerLocations());
 	}
 	
-	public void setTarget() throws GameActionException{ //2 drones per target
+	public void setTarget() throws GameActionException{
 //		rc.broadcast(2000, 0);
 //		rc.broadcast(2001, 0);
 //		rc.broadcast(2002, 0);
@@ -204,32 +212,55 @@ public class HQ extends BaseBot {
 			
 		}
 		int minIndex = -1;
-		int minDist = Integer.MAX_VALUE;
+		double minValue = Integer.MAX_VALUE;
 		RobotInfo[] targets = rc.senseNearbyRobots(myHQ, 10000000, theirTeam);
 		MapLocation[] towers = rc.senseTowerLocations();
 		for(int i = 0; i < targets.length; i++){
 			if(targets[i].type == RobotType.HQ || targets[i].type == RobotType.TOWER){
 				continue;
 			}
-			int dist = targets[i].location.distanceSquaredTo(ml);
-			if(dist < minDist){
-				minDist = dist;
+			double value = targets[i].location.distanceSquaredTo(ml);
+			RobotInfo ri = targets[i];
+			if(getBuilding(ri.type) != 0){
+        		value /= 1;
+        	}
+        	else{
+	        	if(ri.type == RobotType.BEAVER){
+	        		value /= 2;
+	        	}
+	        	else if(ri.type == RobotType.MINER){
+	        		value /= 2;
+	        	}
+	        	else if(ri.type == RobotType.SOLDIER){
+	        		value /= 2;
+	        	}
+	        	else if(ri.type == RobotType.BASHER){
+	        		value /= 2;
+	        	}
+	        	else if(ri.type == RobotType.DRONE){
+	        		value /= 2;
+	        	}
+	        	else if(ri.type == RobotType.TANK){
+	        		value /= 8;
+	        	}
+	        	else if(ri.type == RobotType.LAUNCHER){
+	        		value /= 8;
+	        	}
+	        	else if(ri.type == RobotType.COMMANDER){
+	        		value /= 8;
+	        	}
+	        	else if(ri.type == RobotType.COMPUTER){
+	        		value /= 1;
+	        	}
+	        	else if(ri.type == RobotType.MISSILE){
+	        		value /= 4;
+	        	}
+        	}
+			if(value < minValue){
+				minValue = value;
 				minIndex = i;
 			}
-//			for(int j = 0; j < towers.length; j++){
-//				int dist = targets[i].location.distanceSquaredTo(towers[j]);
-//				if(dist < minDist){
-//					minDist = dist;
-//					minIndex = i;
-//				}
-//			}
-//			int dist = targets[i].location.distanceSquaredTo(myHQ);
-//			if(dist < minDist){
-//				minDist = dist;
-//				minIndex = i;
-//			}
 		}
-		
 		if(minIndex != -1){
 			rc.broadcast(2000, 1);
 			rc.broadcast(2001, targets[minIndex].location.x);
