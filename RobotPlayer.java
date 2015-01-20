@@ -28,6 +28,12 @@ public class RobotPlayer {
             myself = new TankFactory(rc);
         } else if (rc.getType() == RobotType.TANK) {
             myself = new Tank(rc);
+        } else if (rc.getType() == RobotType.TECHNOLOGYINSTITUTE) {
+            myself = new TechnologyInstitute(rc);
+        } else if (rc.getType() == RobotType.TRAININGFIELD) {
+            myself = new TrainingField(rc);
+        } else if (rc.getType() == RobotType.COMMANDER) {
+            myself = new Commander(rc);
         } else if (rc.getType() == RobotType.TOWER) {
             myself = new Tower(rc);
         } else {

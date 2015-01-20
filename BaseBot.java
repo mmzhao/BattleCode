@@ -103,6 +103,125 @@ public class BaseBot {
     	return 0;
     }
     
+    public void attackForValue(RobotInfo[] enemies) throws GameActionException {
+        if (enemies.length == 0) {
+            return;
+        }
+        
+        int maxValue = -1;
+        MapLocation toAttack = null;
+        for (RobotInfo ri : enemies) {
+        	int currValue = -1;
+        	if(ri.type == RobotType.TOWER || ri.type == RobotType.HQ){
+        		currValue = 0;
+        	}
+        	else if(getBuilding(ri.type) != 0){
+        		currValue = 1;
+        	}
+        	else{
+	        	if(ri.type == RobotType.BEAVER){
+	        		currValue = 2;
+	        	}
+	        	else if(ri.type == RobotType.MINER){
+	        		currValue = 3;
+	        	}
+	        	else if(ri.type == RobotType.SOLDIER){
+	        		currValue = 4;
+	        	}
+	        	else if(ri.type == RobotType.BASHER){
+	        		currValue = 5;
+	        	}
+	        	else if(ri.type == RobotType.DRONE){
+	        		currValue = 6;
+	        	}
+	        	else if(ri.type == RobotType.TANK){
+	        		currValue = 7;
+	        	}
+	        	else if(ri.type == RobotType.LAUNCHER){
+	        		currValue = 8;
+	        	}
+	        	else if(ri.type == RobotType.COMMANDER){
+	        		currValue = 9;
+	        	}
+	        	else if(ri.type == RobotType.COMPUTER){
+	        		currValue = 1;
+	        	}
+	        	else if(ri.type == RobotType.MISSILE){
+	        		currValue = 5;
+	        	}
+	        	if(ri.type != RobotType.MISSILE){
+	        		if(ri.health < rc.getType().attackPower){
+	        			currValue += 10;
+	        		}
+	        	}
+	        	else{
+	        		if(ri.health == 1){
+	        			currValue += 10;
+	        		}
+	        	}
+        	}
+	        if(currValue > maxValue){
+	        	maxValue = currValue;
+	        	toAttack = ri.location;
+	        }
+        }
+
+        rc.attackLocation(toAttack);
+    }
+    
+    public void micro() throws GameActionException{
+    	MapLocation center = new MapLocation(rc.readBroadcast(2004), rc.readBroadcast(2005));
+    	RobotInfo[] enemies = rc.senseNearbyRobots(center, 100, theirTeam);
+    	RobotInfo[] allies = rc.senseNearbyRobots(center, 25, myTeam);
+    	int enemyStrength = 0;
+    	for(RobotInfo e: enemies){
+    		if(e.type == RobotType.TOWER || e.type == RobotType.HQ || e.location.distanceSquaredTo(rc.getLocation()) > e.type.attackRadiusSquared){
+    			continue;
+    		}
+    		if(e.weaponDelay < 1){
+    			enemyStrength += e.health * e.type.attackPower;
+    		}
+    		else{
+    			enemyStrength += e.health;
+    		}
+    	}
+    	int allyStrength = 0;
+    	for(RobotInfo a: allies){
+    		if(a.type == RobotType.TOWER || a.type == RobotType.HQ){
+    			continue;
+    		}
+    		if(a.weaponDelay < 1){
+    			allyStrength += a.health * a.type.attackPower;
+    		}
+    		else{
+    			allyStrength += a.health;
+    		}
+    	}
+//    	System.out.println(enemyStrength + "    " + allyStrength);
+    	if(enemyStrength > allyStrength){
+    		if(rc.senseTowerLocations().length > 0){
+    			tryMove(rc.getLocation().directionTo(closestLocation(center, rc.senseTowerLocations())));
+    		}
+    		else{
+    			tryMove(rc.getLocation().directionTo(myHQ));
+    		}
+    	}
+    }
+    
+    public MapLocation closestLocation(MapLocation currRally, MapLocation[] ml)
+			throws GameActionException {
+		int minDist = currRally.distanceSquaredTo(ml[0]);
+		int minIndex = 0;
+		for (int i = 1; i < ml.length; i++) {
+			int currDist = currRally.distanceSquaredTo(ml[i]);
+			if (currDist < minDist) {
+				minDist = currDist;
+				minIndex = i;
+			}
+		}
+		return ml[minIndex];
+	}
+    
     public void transferSupplies() throws GameActionException{
     	
     	double minSupply = rc.getSupplyLevel();
@@ -162,7 +281,7 @@ public class BaseBot {
     	if(ml.distanceSquaredTo(theirHQ) <= RobotType.HQ.attackRadiusSquared){
     		return false;
     	}
-    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 15, theirTeam);
+    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 24, theirTeam);
     	for(RobotInfo enemy:enemies){
     		if(ml.distanceSquaredTo(enemy.location) <= enemy.type.attackRadiusSquared){
     			return false;
@@ -232,7 +351,7 @@ public class BaseBot {
 
     public Direction getSpawnDirection(RobotType type) {
 //        Direction[] dirs = getDirectionsToward(this.theirHQ);
-        Direction[] dirs = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
+        Direction[] dirs = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST,};
         int offset = (int) (Math.random() * dirs.length);
         for (int i = 0; i < dirs.length; i++) {
             if (rc.canSpawn(dirs[(i + offset) % dirs.length], type)) {

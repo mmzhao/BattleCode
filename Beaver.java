@@ -16,6 +16,13 @@ public class Beaver extends BaseBot {
 	}
 	
 	public void execute() throws GameActionException {
+		if(Clock.getRoundNum() < 19){
+			if(rc.isCoreReady()){
+				rc.mine();
+				rc.yield();
+			}
+		}
+		
 		RobotInfo[] enemies = getEnemiesInAttackingRange(rc.getType());
 
 		if (enemies.length > 0) {
@@ -141,26 +148,52 @@ public class Beaver extends BaseBot {
 	}
 
 	public boolean startBuilding(RobotType type) throws GameActionException {
-		if (rc.isCoreReady()) {
-			if (rc.getTeamOre() >= type.oreCost) {
-				if(rc.canBuild(Direction.NORTH, type)){
-					rc.build(Direction.NORTH, type);
-					return true;
+		if(rc.getTeam() == Team.A){
+			if (rc.isCoreReady()) {
+				if (rc.getTeamOre() >= type.oreCost) {
+					if(rc.canBuild(Direction.SOUTH, type)){
+						rc.build(Direction.SOUTH, type);
+						return true;
+					}
+					else if(rc.canBuild(Direction.WEST, type)){
+						rc.build(Direction.WEST, type);
+						return true;
+					}
+					else if(rc.canBuild(Direction.NORTH, type)){
+						rc.build(Direction.NORTH, type);
+						return true;
+					}
+					else if(rc.canBuild(Direction.EAST, type)){
+						rc.build(Direction.EAST, type);
+						return true;
+					}
+	//				rc.setIndicatorString(2, "North: " + rc.canBuild(Direction.NORTH, type) + " East: " + rc.canBuild(Direction.EAST, type) + " South: " + rc.canBuild(Direction.SOUTH, type) + " West: " + rc.canBuild(Direction.WEST, type));
+					moveOutwards();
 				}
-				else if(rc.canBuild(Direction.EAST, type)){
-					rc.build(Direction.EAST, type);
-					return true;
+			}
+		}
+		else{
+			if (rc.isCoreReady()) {
+				if (rc.getTeamOre() >= type.oreCost) {
+					if(rc.canBuild(Direction.NORTH, type)){
+						rc.build(Direction.NORTH, type);
+						return true;
+					}
+					else if(rc.canBuild(Direction.EAST, type)){
+						rc.build(Direction.EAST, type);
+						return true;
+					}
+					else if(rc.canBuild(Direction.SOUTH, type)){
+						rc.build(Direction.SOUTH, type);
+						return true;
+					}
+					else if(rc.canBuild(Direction.WEST, type)){
+						rc.build(Direction.WEST, type);
+						return true;
+					}
+	//				rc.setIndicatorString(2, "North: " + rc.canBuild(Direction.NORTH, type) + " East: " + rc.canBuild(Direction.EAST, type) + " South: " + rc.canBuild(Direction.SOUTH, type) + " West: " + rc.canBuild(Direction.WEST, type));
+					moveOutwards();
 				}
-				else if(rc.canBuild(Direction.SOUTH, type)){
-					rc.build(Direction.SOUTH, type);
-					return true;
-				}
-				else if(rc.canBuild(Direction.WEST, type)){
-					rc.build(Direction.WEST, type);
-					return true;
-				}
-//				rc.setIndicatorString(2, "North: " + rc.canBuild(Direction.NORTH, type) + " East: " + rc.canBuild(Direction.EAST, type) + " South: " + rc.canBuild(Direction.SOUTH, type) + " West: " + rc.canBuild(Direction.WEST, type));
-				moveOutwards();
 			}
 		}
 		mineBehavior();

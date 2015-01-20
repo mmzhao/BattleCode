@@ -53,6 +53,11 @@ import battlecode.common.TerrainTile;
 //2000 -- target boolean, 0-no, 1-yes
 //2001 -- extra unit target point x
 //2002 -- extra unit target point y
+//2003 -- number of units in target force
+//2004 -- target force x sum
+//2005 -- target force y sum
+
+//2500 -- per turn mining total - if less than 1 avg then stop building miners
 
 //3000 -- attacking units yolo rush
 //4000 -- yolo rush mode, 0-no, 1-yes
@@ -75,68 +80,61 @@ public class HQ extends BaseBot {
 		this.myHQ = rc.senseHQLocation();
 		this.theirHQ = rc.senseEnemyHQLocation();
 		inQueue = new int[10];
-//		beginMapAnalyze();
-//		map = new int[Math.abs(distx) + 1][Math.abs(disty) + 1];
-//		blockValue = new int[3][3];
-//		minValue = 0;
-//		bestPath = "";
 	}
 
 	public void execute() throws GameActionException {
 		
 		//amount of every ally unit
-		getInitialInfo();
-
-		//find out about HQ defenders
-//		int numDefenders = 0;
-//		RobotInfo[] ri2 = rc.senseNearbyRobots(10, rc.getTeam());
-//		for (int i = 0; i < ri2.length; i++) {
-//			if (ri2[i].type == RobotType.SOLDIER) {
-//				numDefenders++;
-//			}
-//		}
+		getInitialInfoTankSpecial();
 
 		//attack if possible
 		if (rc.isWeaponReady()) {
 			attackLeastHealthEnemy(getEnemiesInAttackingRange(rc.getType()));
 		}
 
-		//always have 3 beavers up
-		keepingSomeBeavers(3);
+		//always have 2 beavers up
+		keepingSomeBeavers(2);
 		
 		//set up strat
-//		soldierRushStrat();
-		tankStrat();
-		
-		//set up rally point
+		//IF NOT USING TANK STRAT CHANGE OTHER CLASS ATTACK PATTERNS TO WHAT TANK HAS NOW - VALUE ATTACKS
 		MapLocation rallyPoint;
-		rallyPoint = normalRushRally();
-		if(Clock.getRoundNum() < 1200){
-			setTarget();
-		}
-		else if(Clock.getRoundNum() < 1500){
-			rc.broadcast(2000, 0); //remove all targets
-			rc.broadcast(3000, 1); //start attack rush
-			rallyPoint = nextTower();
-		}
-		else{
-			rc.broadcast(4000, 1); //throw everything
-			rallyPoint = nextTower();
-		}
-//		rallyPoint = myHQ;
-		
-		
-		
-		//squads for drones
-//		String squadCounts = "num squads: " + rc.readBroadcast(100) + "        ";
-//		for(int i = 0; i < rc.readBroadcast(100); i++){
-//			squadCounts += rc.readBroadcast(103 + i * 10) + " ";
+		int mapSize = myHQ.distanceSquaredTo(theirHQ);
+//		if(mapSize < 500){
+//			aggroTankStrat();
+//			
+//			//set up rally point
+//			rallyPoint = theirHQ;
+//			if(Clock.getRoundNum() < 1500){
+//				setTarget();
+//			}
+//			else if(Clock.getRoundNum() < 1800){
+//				rc.broadcast(2000, 0); //remove all targets
+//				rc.broadcast(3000, 1); //start attack rush
+//				rallyPoint = nextTower();
+//			}
+//			else{
+//				rc.broadcast(4000, 1); //throw everything
+//				rallyPoint = nextTower();
+//			}
 //		}
-		
-//		setHitSquads();
-		
-//		rc.setIndicatorString(0, squadCounts);
-		
+//		else{
+			tankStratWithCommander();
+			
+			//set up rally point
+			rallyPoint = normalRushRally();
+			if(Clock.getRoundNum() < 1500){
+				setTarget();
+			}
+			else if(Clock.getRoundNum() < 1800){
+				rc.broadcast(2000, 0); //remove all targets
+				rc.broadcast(3000, 1); //start attack rush
+				rallyPoint = nextTower();
+			}
+			else{
+				rc.broadcast(4000, 1); //throw everything
+				rallyPoint = nextTower();
+			}
+//		}
 		
 		
 		for (int i = 1; i < 10; i++) {
@@ -153,7 +151,10 @@ public class HQ extends BaseBot {
 		setUpQueueInfo();
 
 		
-		rc.setIndicatorString(1, rc.readBroadcast(5000) + "");
+		rc.setIndicatorString(1, "used: "+ rc.readBroadcast(5000) + " mining per turn: " + rc.readBroadcast(2500));
+		
+
+		resetMiningCount();
 		
 		transferSupplies();
 
@@ -162,6 +163,11 @@ public class HQ extends BaseBot {
 		rc.yield();
 	}
 	
+	public void resetMiningCount() throws GameActionException{
+		rc.broadcast(2500, 0);
+		
+	}
+
 	public MapLocation nextTower(){
 		MapLocation targetTower = null;
 		int minProtection = Integer.MAX_VALUE;
@@ -189,9 +195,14 @@ public class HQ extends BaseBot {
 	}
 	
 	public void setTarget() throws GameActionException{ //2 drones per target
-		rc.broadcast(2000, 0);
-		rc.broadcast(2001, 0);
-		rc.broadcast(2002, 0);
+//		rc.broadcast(2000, 0);
+//		rc.broadcast(2001, 0);
+//		rc.broadcast(2002, 0);
+		
+		MapLocation ml = new MapLocation(rc.readBroadcast(2004), rc.readBroadcast(2005));
+		if(ml.x == 0 && ml.y == 0){
+			
+		}
 		int minIndex = -1;
 		int minDist = Integer.MAX_VALUE;
 		RobotInfo[] targets = rc.senseNearbyRobots(myHQ, 10000000, theirTeam);
@@ -200,18 +211,23 @@ public class HQ extends BaseBot {
 			if(targets[i].type == RobotType.HQ || targets[i].type == RobotType.TOWER){
 				continue;
 			}
-			for(int j = 0; j < towers.length; j++){
-				int dist = targets[i].location.distanceSquaredTo(towers[j]);
-				if(dist < minDist){
-					minDist = dist;
-					minIndex = i;
-				}
-			}
-			int dist = targets[i].location.distanceSquaredTo(myHQ);
+			int dist = targets[i].location.distanceSquaredTo(ml);
 			if(dist < minDist){
 				minDist = dist;
 				minIndex = i;
 			}
+//			for(int j = 0; j < towers.length; j++){
+//				int dist = targets[i].location.distanceSquaredTo(towers[j]);
+//				if(dist < minDist){
+//					minDist = dist;
+//					minIndex = i;
+//				}
+//			}
+//			int dist = targets[i].location.distanceSquaredTo(myHQ);
+//			if(dist < minDist){
+//				minDist = dist;
+//				minIndex = i;
+//			}
 		}
 		
 		if(minIndex != -1){
@@ -222,11 +238,10 @@ public class HQ extends BaseBot {
 		}
 	}
 	
-	
 	public void keepingSomeBeavers(int num) throws GameActionException{
 		if (rc.isCoreReady()) {
-			if (units[getUnit(RobotType.BEAVER)] < 1 || (units[getUnit(RobotType.BEAVER)] < 2 && buildings[getBuilding(RobotType.MINERFACTORY)] > 1)) {
-				if (rc.getTeamOre() > 100) {
+			if (units[getUnit(RobotType.BEAVER)] < 1 || (units[getUnit(RobotType.BEAVER)] < num && buildings[getBuilding(RobotType.MINERFACTORY)] > 0)) {
+				if (rc.getTeamOre() > RobotType.BEAVER.oreCost) {
 					Direction newDir = getSpawnDirection(RobotType.BEAVER);
 					if (newDir != null) {
 						rc.spawn(newDir, RobotType.BEAVER);
@@ -286,6 +301,48 @@ public class HQ extends BaseBot {
 		}
 	}
 	
+	public void tankStratWithCommander() throws GameActionException {
+
+		if (buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 1) {
+			addToQueue(getBuilding(RobotType.MINERFACTORY));
+		}
+		
+		if (buildings[getBuilding(RobotType.TRAININGFIELD)]
+				+ inQueue[getBuilding(RobotType.TRAININGFIELD)] > 0 && buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 2) {
+			addToQueue(getBuilding(RobotType.MINERFACTORY));
+		}
+
+		if (buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] > 0 && 
+				buildings[getBuilding(RobotType.TECHNOLOGYINSTITUTE)]
+				+ inQueue[getBuilding(RobotType.TECHNOLOGYINSTITUTE)] < 1) {
+			addToQueue(getBuilding(RobotType.TECHNOLOGYINSTITUTE));
+		}
+
+		if (buildings[getBuilding(RobotType.TECHNOLOGYINSTITUTE)] > 0 && buildings[getBuilding(RobotType.TRAININGFIELD)]
+						+ inQueue[getBuilding(RobotType.TRAININGFIELD)] < 1) {
+			addToQueue(getBuilding(RobotType.TRAININGFIELD));
+		}
+		
+		if (buildings[getBuilding(RobotType.TRAININGFIELD)] > 0 && 
+				buildings[getBuilding(RobotType.BARRACKS)]
+				+ inQueue[getBuilding(RobotType.BARRACKS)] < 1) {
+			addToQueue(getBuilding(RobotType.BARRACKS));
+		}
+
+		if (buildings[getBuilding(RobotType.BARRACKS)] > 0 && buildings[getBuilding(RobotType.TANKFACTORY)]
+						+ inQueue[getBuilding(RobotType.TANKFACTORY)] < 4) {
+			addToQueue(getBuilding(RobotType.TANKFACTORY));
+		}
+		
+		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
+						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 600) / 100)) {
+			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
+		}
+	}
+	
 	public void tankStrat() throws GameActionException {
 
 		if (buildings[getBuilding(RobotType.MINERFACTORY)]
@@ -300,11 +357,43 @@ public class HQ extends BaseBot {
 
 		else if (buildings[getBuilding(RobotType.BARRACKS)] > 0 && buildings[getBuilding(RobotType.TANKFACTORY)]
 						+ inQueue[getBuilding(RobotType.TANKFACTORY)] < 5) {
-			addToQueue(getBuilding(RobotType.TANKFACTORY));
+			addToFrontQueue(getBuilding(RobotType.TANKFACTORY));
 		}
 		
 		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
 						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 200) / 100)) {
+			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
+		}
+	}
+	
+	
+	public void aggroTankStrat() throws GameActionException {
+
+		if (buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 1) {
+			addToQueue(getBuilding(RobotType.MINERFACTORY));
+		}
+		
+		if (buildings[getBuilding(RobotType.TANKFACTORY)]
+				+ inQueue[getBuilding(RobotType.TANKFACTORY)] > 0 && buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 2) {
+			addToQueue(getBuilding(RobotType.MINERFACTORY));
+		}
+
+		if (buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] > 0 && 
+				buildings[getBuilding(RobotType.BARRACKS)]
+				+ inQueue[getBuilding(RobotType.BARRACKS)] < 1) {
+			addToQueue(getBuilding(RobotType.BARRACKS));
+		}
+
+		if (buildings[getBuilding(RobotType.BARRACKS)] > 0 && buildings[getBuilding(RobotType.TANKFACTORY)]
+						+ inQueue[getBuilding(RobotType.TANKFACTORY)] < 4) {
+			addToQueue(getBuilding(RobotType.TANKFACTORY));
+		}
+		
+		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
+						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 600) / 100)) {
 			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
 		}
 	}
@@ -366,6 +455,70 @@ public class HQ extends BaseBot {
 		return rallyPoint;
 	}
 
+	//SPECIALIZED FOR TANKS CHANGE LATER
+	public void getInitialInfoTankSpecial() throws GameActionException {
+		//reset tank info
+		rc.broadcast(2003, 0);
+		rc.broadcast(2004, 0);
+		rc.broadcast(2005, 0);
+		
+		RobotInfo[] ri = rc.senseNearbyRobots(rc.getLocation(), 100000000,
+				rc.getTeam());
+		units = new int[10];
+		buildings = new int[10];
+		for (int i = 0; i < ri.length; i++) {
+			if (ri[i].type == RobotType.BEAVER) {
+				units[1]++;
+			} else if (ri[i].type == RobotType.MINER) {
+				units[2]++;
+			} else if (ri[i].type == RobotType.SOLDIER) {
+				units[3]++;
+			} else if (ri[i].type == RobotType.BASHER) {
+				units[4]++;
+			} else if (ri[i].type == RobotType.DRONE) {
+				units[5]++;
+			} else if (ri[i].type == RobotType.TANK) {
+				units[6]++;
+				rc.broadcast(2003, rc.readBroadcast(2003) + 1);
+				rc.broadcast(2004, rc.readBroadcast(2004) + ri[i].location.x);
+				rc.broadcast(2005, rc.readBroadcast(2005) + ri[i].location.y);
+			} else if (ri[i].type == RobotType.LAUNCHER) {
+				units[7]++;
+			} else if (ri[i].type == RobotType.COMMANDER) {
+				units[8]++;
+			} else if (ri[i].type == RobotType.COMPUTER) {
+				units[9]++;
+			} else if (ri[i].type == RobotType.BARRACKS) {
+				buildings[1]++;
+			} else if (ri[i].type == RobotType.MINERFACTORY) {
+				buildings[2]++;
+			} else if (ri[i].type == RobotType.HELIPAD) {
+				buildings[3]++;
+			} else if (ri[i].type == RobotType.SUPPLYDEPOT) {
+				buildings[4]++;
+			} else if (ri[i].type == RobotType.TANKFACTORY) {
+				buildings[5]++;
+			} else if (ri[i].type == RobotType.TECHNOLOGYINSTITUTE) {
+				buildings[6]++;
+			} else if (ri[i].type == RobotType.AEROSPACELAB) {
+				buildings[7]++;
+			} else if (ri[i].type == RobotType.TRAININGFIELD) {
+				buildings[8]++;
+			} else if (ri[i].type == RobotType.HANDWASHSTATION) {
+				buildings[9]++;
+			}
+		}
+		
+//		MapLocation[] towers = rc.senseTowerLocations();
+//		rc.broadcast(20, towers.length);
+//		for(int i = 0; i < towers.length; i++){
+//			rc.broadcast(21 + 10 * i, towers[i].x);
+//			rc.broadcast(22 + 10 * i, towers[i].y);
+//			rc.broadcast(23 + 10 * i, rc.senseNearbyRobots(towers[i], 9, myTeam).length);
+//		}
+		
+	}
+	
 	public void getInitialInfo() throws GameActionException {
 		RobotInfo[] ri = rc.senseNearbyRobots(rc.getLocation(), 100000000,
 				rc.getTeam());
@@ -410,15 +563,6 @@ public class HQ extends BaseBot {
 				buildings[9]++;
 			}
 		}
-		
-		MapLocation[] towers = rc.senseTowerLocations();
-		rc.broadcast(20, towers.length);
-		for(int i = 0; i < towers.length; i++){
-			rc.broadcast(21 + 10 * i, towers[i].x);
-			rc.broadcast(22 + 10 * i, towers[i].y);
-			rc.broadcast(23 + 10 * i, rc.senseNearbyRobots(towers[i], 9, myTeam).length);
-		}
-		
 	}
 
 	public void addToQueue(int num) throws GameActionException {
@@ -433,6 +577,16 @@ public class HQ extends BaseBot {
 		else {
 			queue = (int) (curr + Math.pow(10, length) * num);
 			rc.broadcast(0, queue);
+		}
+	}
+	
+	public void addToFrontQueue(int num) throws GameActionException {
+		int curr = rc.readBroadcast(0);
+		int length = Integer.toString(curr).length();
+		if (length > 8)
+			return;
+		else {
+			rc.broadcast(0, curr * 10 + num);
 		}
 	}
 
@@ -457,215 +611,8 @@ public class HQ extends BaseBot {
 		 + " " + units[7] + " " + units[8] + " " + units[9]);
 	}
 
-	public void beginMapAnalyze() {
-		xmin = Math.min(myHQ.x, theirHQ.x);
-		ymin = Math.min(myHQ.y, theirHQ.y);
-		xmax = Math.max(myHQ.x, theirHQ.x);
-		ymax = Math.max(myHQ.y, theirHQ.y);
 
-		xpos = xmin;
-		ypos = ymin;
-		
-//		distx = theirHQ.x - myHQ.x;
-//		disty = theirHQ.y - myHQ.y;
-//		stepx = distx / 3;
-//		stepy = disty / 3;
-	}
-
-	public void analyzeMap() throws GameActionException { // 0 - normal, 1 -
-															// void, 2 - tower
-
-//		rc.setIndicatorString(2, "Bytecodes left: " + Clock.getBytecodesLeft());
-		// distx = xmax - xmin;
-		// disty = ymax - ymin;
-
-//		while (ypos <= ymax) {
-//			TerrainTile t = rc.senseTerrainTile(new MapLocation(xpos, ypos));
-//			if (t == TerrainTile.NORMAL) {
-//				RobotInfo atLoc = rc.senseRobotAtLocation(new MapLocation(xpos,
-//						ypos));
-//				if (atLoc != null && atLoc.type == RobotType.TOWER
-//						&& atLoc.team == theirTeam) {
-//					map[xpos - xmin][ypos - ymin] = 2;
-//				} else
-//					map[xpos - xmin][ypos - ymin] = 0;
-//			} else if (t == TerrainTile.VOID) {
-//				map[xpos - xmin][ypos - ymin] = 1;
-//			}
-//			xpos++;
-//			if (xpos > xmax) {
-//				xpos = xmin;
-//				ypos++;
-//			}
-//		}
-//		
-//		for(int i = 0; i < 3; i ++){
-//			for(int j = 0; j < 0; j++){
-//				blockValue[i][j] = analyzeBlock(myHQ.x + i * stepx, myHQ.y + j * stepy, myHQ.x + (i + 1) * stepx, myHQ.y + (j + 1) * stepy);
-//			}
-//		}
-//		
-//		isFinished = true;
-
-	}
 	
-	public String analyzePaths(){
-//		while(index < paths.length){
-//			
-//			index++;
-//		}
-		return "";
-	}
-	
-	public void analyzeBlock(int minx, int miny, int maxx, int maxy)
-			throws GameActionException {
-		// int value = 0;
-//		int voids = 0;
-//		int towers = 0;
-//		if (minx > maxx) {
-//			int temp = maxx;
-//			maxx = minx;
-//			minx = temp;
-//		}
-//		if (miny > maxy) {
-//			int temp = maxy;
-//			maxy = miny;
-//			miny = temp;
-//		}
-//		for (int i = minx; i <= maxx; i++) {
-//			for (int j = miny; j <= maxy; j++) {
-//				if (i >= xmin && i <= xmax && j >= ymin && j <= ymax) {
-//					if (map[i - xmin][j - ymin] == 1) {
-//						voids++;
-//					} else if (map[i - xmin][j - ymin] == 2) {
-//						towers++;
-//					}
-//				} else {
-//					RobotInfo atLoc = rc.senseRobotAtLocation(new MapLocation(
-//							i, j));
-//					if (atLoc.type == RobotType.TOWER
-//							&& atLoc.team == theirTeam) {
-//						towers++;
-//					}
-//				}
-//			}
-//		}
-//		return (int) (Math.pow(towers - 1, 3) + voids * 2);
-	}
-
-	public MapLocation closestLocation(MapLocation currRally, MapLocation[] ml)
-			throws GameActionException {
-		int minDist = currRally.distanceSquaredTo(ml[0]);
-		int minIndex = 0;
-		for (int i = 1; i < ml.length; i++) {
-			int currDist = currRally.distanceSquaredTo(ml[i]);
-			if (currDist < minDist) {
-				minDist = currDist;
-				minIndex = i;
-			}
-		}
-		return ml[minIndex];
-	}
 
 }
 
-//
-// public void analyzeMap(){
-// while(ypos <= ymax){
-// TerrainTile t = rc.senseTerrainTile(new MapLocation(xpos, ypos));
-// if(t == TerrainTile.NORMAL){
-// totalNormal++;
-// totalProcessed++;
-// }
-// else if(t == TerrainTile.VOID){
-// totalVoid++;
-// totalProcessed++;
-// }
-// xpos++;
-// if(xpos > xmax){
-// xpos = xmin;
-// ypos++;
-// }
-// }
-// ratio = (double)(totalNormal/totalProcessed);
-// isFinished = true;
-// }
-
-
-//public void makePaths() {
-	// while(starts.size() > 0){
-	// Path p = starts.remove(0);
-	// if (p.finished) {
-	// finished.add(p);
-	// }
-	// if (p.x < 5)
-	// starts.add(p.add(0));
-	// if (p.y < 5)
-	// starts.add(p.add(2));
-	// if (p.x < 5 && p.y < 5)
-	// starts.add(p.add(1));
-	// }
-	// }
-
-	// 3 types of steps -- 0-left/right,1-diag combo,2-up/down
-	// public Path bestPath(int currx, int curry) throws GameActionException{
-	// //value is bad
-	// int min = Integer.MAX_VALUE;
-	// String path = "";
-	// boolean canAdd = false;
-	// if(currx < distx){
-	// canAdd = true;
-	// Path up = bestPath(currx + stepx, curry);
-	// int value = up.value + analyzeBlock(currx, curry - stepy/2, currx + stepx
-	// - 1, curry + stepy/2);
-	// if(value < min){
-	// min = value;
-	// }
-	// path = "0" + up.path;
-	// }
-	// if(curry < disty){
-	// canAdd = true;
-	// Path right = bestPath(currx, curry + stepy);
-	// int value = right.value + analyzeBlock(currx - stepx/2, curry, currx +
-	// stepx/2, curry + stepy - 1);
-	// if(value < min){
-	// min = value;
-	// }
-	// path = "2" + right.path;
-	// }
-	// if(currx < distx && curry < disty){
-	// canAdd = true;
-	// Path diag = bestPath(currx + stepx, curry + stepy);
-	// int value = diag.value + analyzeBlock(currx, curry, currx + stepx - 1,
-	// curry + stepy - 1);
-	// if(value < min){
-	// min = value;
-	// }
-	// path = "1" + diag.path;
-	// }
-	// if(!canAdd){
-	// return new Path();
-	// }
-	// return new Path(path, min);
-	//
-	// }
-
-//int[][] map;
-//int[][] blockValue;
-//int stepx, stepy;
-//int distx, disty;
-//int minValue;
-//String bestPath;
-//int index = 0;
-
-
-//String[] paths = { "111", "0211", "0121", "0112", "2011", "2101", "2110",
-//		"1021", "1012", "1201", "1210", "1102", "1120", "00221", "00212",
-//		"00122", "02021", "02012", "02201", "02210", "02102", "02120",
-//		"01022", "01202", "01220", "20021", "20012", "20201", "20210",
-//		"20102", "20120", "22001", "22010", "22100", "21002", "21020",
-//		"21200", "10022", "10202", "10220", "12002", "12020", "12200",
-//		"000222", "002022", "002202", "002220", "020022", "020202",
-//		"020220", "022002", "022020", "022200", "200022", "200202",
-//		"200220", "202002", "202020", "202200", "220002", "220020",
-//		"220200", "222000" };

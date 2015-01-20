@@ -12,10 +12,10 @@ public class MinerFactory extends BaseBot {
 		int numMiners = rc.readBroadcast(getUnit(RobotType.MINER) + 10);
 		rc.setIndicatorString(0, "Number of Miners: " + numMiners);
 		if (rc.isCoreReady()) {
-			if (numMiners < 25 + (int) (Clock.getRoundNum() / 80) && rc.getTeamOre() > RobotType.MINER.oreCost) {
+//			if (numMiners < 25 + (int) (Clock.getRoundNum() / 80) && rc.getTeamOre() > RobotType.MINER.oreCost) {
+			if ((numMiners < 25 || (rc.readBroadcast(2500) / rc.readBroadcast(getUnit(RobotType.MINER) + 10)) > 4) && rc.getTeamOre() > RobotType.MINER.oreCost) {
 				spawn();
 			}
-//			}
 		}
 		
 		transferSupplies();
