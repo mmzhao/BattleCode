@@ -69,12 +69,15 @@ public class Tank extends BaseBot{
     
     public void micro() throws GameActionException{
     	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 24, theirTeam);
-    	if(enemies.length == 0) return;
+    	int length = enemies.length;
+    	if(length == 0) return;
     	boolean noAttackersInRange = true;
-    	for(RobotInfo e: enemies){
-    		if(e.type == RobotType.TOWER || e.type == RobotType.HQ) continue;
-    		if(e.type.attackRadiusSquared >= e.location.distanceSquaredTo(rc.getLocation())){
+    	for(int i = length - 1; --i>=0;){
+    		RobotType iType = enemies[i].type;
+    		if(iType == RobotType.TOWER || iType == RobotType.HQ) continue;
+    		if(iType.attackRadiusSquared >= enemies[i].location.distanceSquaredTo(rc.getLocation())){
     			noAttackersInRange = false;
+    			break;
     		}
     	}
     	if(noAttackersInRange){ 
@@ -82,9 +85,9 @@ public class Tank extends BaseBot{
     	}
     	int totalX = 0;
     	int totalY = 0;
-    	for(RobotInfo e: enemies){
-    		totalX += e.location.x;
-    		totalY += e.location.y;
+    	for(int i = length; --i>0;){
+    		totalX += enemies[i].location.x;
+    		totalY += enemies[i].location.y;
     	}
     	MapLocation enemyCenter = new MapLocation(totalX/enemies.length, totalY/enemies.length);
     	tryMove(enemyCenter.directionTo(rc.getLocation()));
