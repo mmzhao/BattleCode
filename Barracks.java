@@ -1,5 +1,6 @@
 package testing;
 
+import battlecode.common.Clock;
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.RobotController;
@@ -12,7 +13,10 @@ public class Barracks extends BaseBot {
 
     public void execute() throws GameActionException {
 //    	int numSoldiers = rc.readBroadcast(getUnit(RobotType.SOLDIER) + 10);
-//        if (rc.getCoreDelay() < 1 && rc.getTeamOre() > RobotType.SOLDIER.oreCost) {
+//    	int saveForSupply = 0;
+//    	if(Clock.getRoundNum() > 1000) saveForSupply = 4;
+//    	else if(Clock.getRoundNum() > 500) saveForSupply = 1;
+//        if (numSoldiers < 50 - Clock.getRoundNum() / 50 && rc.getCoreDelay() < 1 && rc.getTeamOre() > RobotType.SOLDIER.oreCost + 100 * saveForSupply) {
 //            Direction newDir = getSpawnDirection(RobotType.SOLDIER);
 //            if (newDir != null) {
 //                rc.spawn(newDir, RobotType.SOLDIER);

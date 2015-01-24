@@ -104,31 +104,12 @@ public class HQ extends BaseBot {
 		//IF NOT USING TANK STRAT CHANGE OTHER CLASS ATTACK PATTERNS TO WHAT TANK HAS NOW - VALUE ATTACKS
 		MapLocation rallyPoint;
 		int mapSize = myHQ.distanceSquaredTo(theirHQ);
-//		if(mapSize < 500){
+		if(mapSize < 500){
 //			aggroTankStrat();
-//			
-//			//set up rally point
-//			rallyPoint = theirHQ;
-//			if(Clock.getRoundNum() < 1500){
-//				setTarget();
-//			}
-//			else if(Clock.getRoundNum() < 1800){
-//				rc.broadcast(2000, 0); //remove all targets
-//				rc.broadcast(3000, 1); //start attack rush
-//				rallyPoint = nextTower();
-//			}
-//			else{
-//				rc.broadcast(4000, 1); //throw everything
-//				rallyPoint = nextTower();
-//			}
-//		}
-//		else{
-//			tankStratWithCommander();
-			tankStrat();
+			soldierRushStrat();
 			
 			//set up rally point
-//			rallyPoint = normalRushRally();
-			rallyPoint = new MapLocation((myHQ.x + theirHQ.x)/2, (myHQ.y + theirHQ.y)/2);
+			rallyPoint = theirHQ;
 			if(Clock.getRoundNum() < 1500){
 				setTarget();
 			}
@@ -141,7 +122,29 @@ public class HQ extends BaseBot {
 				rc.broadcast(4000, 1); //throw everything
 				rallyPoint = nextTower();
 			}
-//		}
+		} //PERHAPS MAKE A MIDDLE GROUND
+		else{
+//			tankStratWithCommander();
+			tankStrat();
+//			soldierRushStrat();
+			
+			//set up rally point
+//			rallyPoint = normalRushRally();
+			rallyPoint = new MapLocation((myHQ.x + theirHQ.x)/2, (myHQ.y + theirHQ.y)/2);
+//			rallyPoint = theirHQ;
+			if(Clock.getRoundNum() < 1500){
+				setTarget();
+			}
+			else if(Clock.getRoundNum() < 1800){
+				rc.broadcast(2000, 0); //remove all targets
+				rc.broadcast(3000, 1); //start attack rush
+				rallyPoint = nextTower();
+			}
+			else{
+				rc.broadcast(4000, 1); //throw everything
+				rallyPoint = nextTower();
+			}
+		}
 		
 		
 		for (int i = 1; i < 10; i++) {
@@ -175,31 +178,33 @@ public class HQ extends BaseBot {
 	}
 
 	public MapLocation nextTower() throws GameActionException{
-//		MapLocation targetTower = null;
-//		int minProtection = Integer.MAX_VALUE;
-//		MapLocation[] towers = rc.senseEnemyTowerLocations();
-//		for(MapLocation t1: towers){
-//			int prot = 0;
-//			for(MapLocation t2: towers){
-//				if(t1.distanceSquaredTo(t2) == 0){
-//					//it's the same tower
-//				}
-//				else if(t1.distanceSquaredTo(t2) <= 25){
-//					prot += 2;
-//				}
-//				else if(t1.distanceSquaredTo(t2) <= 36){
-//					prot++;
-//				}
-//			}
-//			if(prot < minProtection){
-//				minProtection = prot;
-//				targetTower = t1;
-//			}
-//		}
-//		if(targetTower == null) targetTower = theirHQ;
-//		return targetTower;
-		if(rc.senseEnemyTowerLocations().length == 0) return theirHQ;
-		return closestLocation(new MapLocation(rc.readBroadcast(1001), rc.readBroadcast(1002)), rc.senseEnemyTowerLocations());
+		MapLocation targetTower = null;
+		int minProtection = Integer.MAX_VALUE;
+		MapLocation[] towers = rc.senseEnemyTowerLocations();
+		for(MapLocation t1: towers){
+			int prot = 0;
+			for(MapLocation t2: towers){
+				if(t1.distanceSquaredTo(t2) == 0){
+					//it's the same tower
+				}
+				else if(t1.distanceSquaredTo(t2) <= 25){
+					prot += 2;
+				}
+				else if(t1.distanceSquaredTo(t2) <= 36){
+					prot++;
+				}
+			}
+			MapLocation curr = new MapLocation(rc.readBroadcast(2004), rc.readBroadcast(2005));
+			prot += Math.sqrt(curr.distanceSquaredTo(t1));
+			if(prot < minProtection){
+				minProtection = prot;
+				targetTower = t1;
+			}
+		}
+		if(targetTower == null) targetTower = theirHQ;
+		return targetTower;
+//		if(rc.senseEnemyTowerLocations().length == 0) return theirHQ;
+//		return closestLocation(new MapLocation(rc.readBroadcast(1001), rc.readBroadcast(1002)), rc.senseEnemyTowerLocations());
 	}
 	
 	public void setTarget() throws GameActionException{
@@ -397,7 +402,6 @@ public class HQ extends BaseBot {
 		}
 	}
 	
-	
 	public void aggroTankStrat() throws GameActionException {
 
 		if (buildings[getBuilding(RobotType.MINERFACTORY)]
@@ -450,13 +454,19 @@ public class HQ extends BaseBot {
 	public void soldierRushStrat() throws GameActionException{
 		
 		if (buildings[getBuilding(RobotType.MINERFACTORY)]
-				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 3) {
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 2) {
 			addToQueue(getBuilding(RobotType.MINERFACTORY));
 		}
 
-		if (buildings[getBuilding(RobotType.BARRACKS)]
-						+ inQueue[getBuilding(RobotType.BARRACKS)] < (int) (Clock.getRoundNum() / 200) + 1) {
+		else if (buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] > 0 && buildings[getBuilding(RobotType.BARRACKS)]
+				+ inQueue[getBuilding(RobotType.BARRACKS)] < 4) {
 			addToQueue(getBuilding(RobotType.BARRACKS));
+		}
+
+		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
+						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 500) / 30)) {
+			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
 		}
 	}
 	

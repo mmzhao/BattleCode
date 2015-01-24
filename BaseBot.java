@@ -19,6 +19,9 @@ public class BaseBot {
     protected Team myTeam, theirTeam;
     static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	static Random rand;
+	int[] offsets = {0,1,2,3,4,5,6,7};
+
+	public MapLocation previous;
 	
 	static int[] inQueue;
 
@@ -29,6 +32,7 @@ public class BaseBot {
         this.theirTeam = this.myTeam.opponent();
         this.theirHQ = rc.senseEnemyHQLocation();
         rand = new Random(rc.getID());
+        previous = new MapLocation(0, 0);
     }
     
   //1 -- number of barracks
@@ -261,15 +265,16 @@ public class BaseBot {
     
     public void tryMove(Direction d) throws GameActionException {
 		int offsetIndex = 0;
-		int[] offsets = {0,1,-1,2,-2};
 		int dirint = directionToInt(d);
 		boolean blocked = false;
-		while (offsetIndex < 5 && 
+		while (offsetIndex < 8 && 
 				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
-						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])))) {
+						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])) ||
+						rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8]).equals(previous))) {
 			offsetIndex++;
 		}
-		if (offsetIndex < 5) {
+		if (offsetIndex < 8) {
+			previous = rc.getLocation();
 			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
 		}
 	}
