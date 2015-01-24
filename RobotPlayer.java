@@ -7,39 +7,60 @@ import java.util.*;
 public class RobotPlayer {
 	public static void run(RobotController rc) throws GameActionException {
         BaseBot myself;
-
-        if (rc.getType() == RobotType.HQ) {
-            myself = new HQ(rc);
-        } else if (rc.getType() == RobotType.BEAVER) {
-            myself = new Beaver(rc);
-        } else if (rc.getType() == RobotType.MINER) {
-            myself = new Miner(rc);
-        } else if (rc.getType() == RobotType.MINERFACTORY) {
-            myself = new MinerFactory(rc);
-        } else if (rc.getType() == RobotType.HELIPAD) {
-            myself = new Helipad(rc);
-        } else if (rc.getType() == RobotType.DRONE) {
-            myself = new Drone(rc);
-        } else if (rc.getType() == RobotType.BARRACKS) {
-            myself = new Barracks(rc);
-        } else if (rc.getType() == RobotType.SOLDIER) {
-            myself = new Soldier(rc);
-        } else if (rc.getType() == RobotType.TANKFACTORY) {
-            myself = new TankFactory(rc);
-        } else if (rc.getType() == RobotType.TANK) {
-            myself = new Tank(rc);
-        } else if (rc.getType() == RobotType.TECHNOLOGYINSTITUTE) {
-            myself = new TechnologyInstitute(rc);
-        } else if (rc.getType() == RobotType.TRAININGFIELD) {
-            myself = new TrainingField(rc);
-        } else if (rc.getType() == RobotType.COMMANDER) {
-            myself = new Commander(rc);
-        } else if (rc.getType() == RobotType.TOWER) {
-            myself = new Tower(rc);
-        } else {
-            myself = new BaseBot(rc);
+        
+        switch(rc.getType()) {
+        	case HQ: 
+        		myself = new HQ(rc);
+        		break;
+        	case BEAVER:
+        		myself = new Beaver(rc);
+        		break;
+        	case MINER:
+        		myself = new Miner(rc);
+        		break;
+        	case MINERFACTORY:
+        		myself = new MinerFactory(rc);
+        		break;
+        	case HELIPAD:
+        		myself = new Helipad(rc);
+        		break;		
+        	case DRONE:
+                myself = new Drone(rc);
+                break;
+        	case BARRACKS:
+        		myself = new Barracks(rc);
+        		break;
+        	case SOLDIER:
+        		myself = new Soldier(rc);
+        		break;
+        	case TANKFACTORY:
+        		myself = new TankFactory(rc);
+        		break;
+        	case TANK:
+        		myself = new Tank(rc);
+        		break;
+        	case TECHNOLOGYINSTITUTE:
+        		myself = new TechnologyInstitute(rc);
+        		break;
+        	case TRAININGFIELD:
+        		myself = new TrainingField(rc);
+        		break;
+        	case COMMANDER:
+        		myself = new Commander(rc);
+        		break;
+        	case TOWER:
+        		myself = new Tower(rc);
+        		break;
+        	case LAUNCHER:
+        		myself = new Launcher(rc);
+        		break;
+        	case MISSILE:
+        		myself = new Missile(rc);
+        		break;
+        	default:
+        		myself = new BaseBot(rc);
+        		break;
         }
-
         while (true) {
             try {
                 myself.go();
