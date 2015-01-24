@@ -212,6 +212,19 @@ public class BaseBot {
     	}
     }
     
+    public MapLocation average(RobotInfo[] bots) {
+    	int length = bots.length;
+    	int totalX, totalY, count;
+    	totalX = totalY = count = 0;
+    	for (int i = length; --i>=0;) {
+    		RobotInfo r = bots[i];
+    		totalX = r.location.x;
+    		totalY = r.location.y;
+    		count++;
+    	}
+    	return new MapLocation(totalX/count, totalY/count);
+    }
+    
     public MapLocation closestLocation(MapLocation currRally, MapLocation[] ml)
 			throws GameActionException {
 		int minDist = currRally.distanceSquaredTo(ml[0]);
