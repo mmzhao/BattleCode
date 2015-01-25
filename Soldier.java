@@ -1,4 +1,4 @@
-package testing;
+package launcherStrat;
 
 import battlecode.common.Clock;
 import battlecode.common.Direction;
@@ -20,11 +20,23 @@ public class Soldier extends BaseBot{
         towerToProtect = -1;
         attackTarget = false;
         targetLoc = null;
+//        if(rc.getID() % 2 == 0){
+//        	offsets[1] *= -1;
+//			offsets[2] *= -1;
+//			offsets[3] *= -1;
+//        }
     }
 
     public void execute() throws GameActionException {
     	rc.setIndicatorString(1, towerToProtect + "");
         RobotInfo[] enemies = getEnemiesInAttackingRange(rc.getType());
+        
+        
+        
+        //micro
+        if(rc.isCoreReady()){
+        	micro();
+        }
         
         if (enemies.length > 0) {
             //attack!
@@ -33,34 +45,17 @@ public class Soldier extends BaseBot{
             }
         }
         
-        //micro
-        if(rc.isCoreReady()){
-        	micro();
-        }
-        
         if (rc.isCoreReady()) {
-    		if(rc.readBroadcast(2000) == 1){
-    			micro();
-    			if(rc.isCoreReady()){
-	    			attackTarget = true;
-	    			int rallyX = rc.readBroadcast(2001);
-		            int rallyY = rc.readBroadcast(2002);
-		            targetLoc = new MapLocation(rallyX, rallyY);
-		            tryMove(rc.getLocation().directionTo(targetLoc));
-    			}
-    		}
-    		else{
-    			micro();
-    			if(rc.isCoreReady()){
-	    			attackTarget = false;
-		            int rallyX = rc.readBroadcast(1001);
-		            int rallyY = rc.readBroadcast(1002);
-		            targetLoc = new MapLocation(rallyX, rallyY);
-	//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
-	//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
-		            tryMove(rc.getLocation().directionTo(targetLoc));
-    			}
-    		}
+			micro();
+			if(rc.isCoreReady()){
+    			attackTarget = false;
+	            int rallyX = rc.readBroadcast(1001);
+	            int rallyY = rc.readBroadcast(1002);
+	            targetLoc = new MapLocation(rallyX, rallyY);
+//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
+//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
+	            tryMove(rc.getLocation().directionTo(targetLoc));
+			}
         }
         
         transferSupplies();
@@ -68,32 +63,25 @@ public class Soldier extends BaseBot{
         rc.yield();
     }
     
-    public void micro() throws GameActionException{
-    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 24, theirTeam);
-    	int length = enemies.length;
-    	if(length == 0) return;
-    	boolean noAttackersInRange = true;
-    	for(int i = length - 1; --i>=0;){
-    		RobotType iType = enemies[i].type;
-    		if(iType == RobotType.TOWER || iType == RobotType.HQ) continue;
-    		if(iType.attackRadiusSquared >= enemies[i].location.distanceSquaredTo(rc.getLocation())){
-    			noAttackersInRange = false;
-    			break;
-    		}
-    	}
-    	if(noAttackersInRange){ 
-    		return;
-    	}
-    	int totalX = 0;
-    	int totalY = 0;
-    	for(int i = length; --i>0;){
-    		totalX += enemies[i].location.x;
-    		totalY += enemies[i].location.y;
-    	}
-    	MapLocation enemyCenter = new MapLocation(totalX/enemies.length, totalY/enemies.length);
-//    	tryMove(enemyCenter.directionTo(rc.getLocation()));
-    	
-    }
+    public void tryMove(Direction d) throws GameActionException {
+		int offsetIndex = 0;
+		int dirint = directionToInt(d);
+		boolean blocked = false;
+		while (offsetIndex < offsets.length &&
+				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
+						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])))) {
+			offsetIndex++;
+		}
+		if (offsetIndex < offsets.length) {
+			previous = rc.getLocation();
+			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
+		}
+		else{
+			offsets[1] *= -1;
+			offsets[2] *= -1;
+			offsets[3] *= -1;
+		}
+	}
     
     
 	
@@ -116,11 +104,16 @@ public class Soldier extends BaseBot{
         		return false;
     		}
     	}
-    	if(attackTarget) return true;
     	if(rc.readBroadcast(4000) == 1 || rc.readBroadcast(3000) == 1) return true;
-    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 24, theirTeam);
+    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 36, theirTeam);
     	for(RobotInfo enemy:enemies){
     		if(ml.distanceSquaredTo(enemy.location) <= enemy.type.attackRadiusSquared){
+    			return false;
+    		}
+    		else if(enemy.type == RobotType.LAUNCHER && ml.distanceSquaredTo(enemy.location) <= 16){
+    			return false;
+    		}
+    		else if(enemy.type == RobotType.MISSILE && ml.distanceSquaredTo(enemy.location) <= 4){
     			return false;
     		}
     	}

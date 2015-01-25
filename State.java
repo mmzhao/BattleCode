@@ -1,4 +1,4 @@
-package testing;
+package launcherStrat;
 
 public enum State {
 	

@@ -1,4 +1,4 @@
-package testing;
+package launcherStrat;
 
 import battlecode.common.Clock;
 import battlecode.common.DependencyProgress;
@@ -125,13 +125,14 @@ public class HQ extends BaseBot {
 		} //PERHAPS MAKE A MIDDLE GROUND
 		else{
 //			tankStratWithCommander();
-			tankStrat();
+			launcherStrat1();
+//			tankStrat(); 
 //			soldierRushStrat();
 			
 			//set up rally point
 //			rallyPoint = normalRushRally();
-			rallyPoint = new MapLocation((myHQ.x + theirHQ.x)/2, (myHQ.y + theirHQ.y)/2);
-//			rallyPoint = theirHQ;
+//			rallyPoint = new MapLocation((myHQ.x + theirHQ.x)/2, (myHQ.y + theirHQ.y)/2);
+			rallyPoint = theirHQ;
 			if(Clock.getRoundNum() < 1500){
 				setTarget();
 			}
@@ -398,6 +399,35 @@ public class HQ extends BaseBot {
 		
 		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
 						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 200) / 100)) {
+			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
+		}
+	}
+	
+	//LARGE MAP WITH ORE
+	public void launcherStrat1() throws GameActionException {
+
+		if (buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 2) {
+			addToQueue(getBuilding(RobotType.MINERFACTORY));
+		}
+		
+//		else if (buildings[getBuilding(RobotType.BARRACKS)]
+//				+ inQueue[getBuilding(RobotType.BARRACKS)] < 2) {
+//			addToQueue(getBuilding(RobotType.BARRACKS));
+//		}
+
+		else if (buildings[getBuilding(RobotType.HELIPAD)]
+				+ inQueue[getBuilding(RobotType.HELIPAD)] < 1) {
+			addToQueue(getBuilding(RobotType.HELIPAD));
+		}
+
+		else if (buildings[getBuilding(RobotType.HELIPAD)] > 0 && buildings[getBuilding(RobotType.AEROSPACELAB)]
+						+ inQueue[getBuilding(RobotType.AEROSPACELAB)] < 3) {
+			addToFrontQueue(getBuilding(RobotType.AEROSPACELAB));
+		}
+		
+		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
+						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 500) / 100)) {
 			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
 		}
 	}

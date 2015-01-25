@@ -1,4 +1,4 @@
-package testing;
+package launcherStrat;
 
 import battlecode.common.GameActionException;
 import battlecode.common.RobotController;

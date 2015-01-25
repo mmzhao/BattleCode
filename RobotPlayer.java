@@ -1,4 +1,4 @@
-package testing;
+package launcherStrat;
 
 import battlecode.common.*;
 
@@ -50,6 +50,9 @@ public class RobotPlayer {
         		break;
         	case TOWER:
         		myself = new Tower(rc);
+        		break;
+        	case AEROSPACELAB:
+        		myself = new AerospaceLab(rc);
         		break;
         	case LAUNCHER:
         		myself = new Launcher(rc);

@@ -1,4 +1,4 @@
-package testing;
+package launcherStrat;
 
 import battlecode.common.Clock;
 import battlecode.common.Direction;

@@ -1,4 +1,4 @@
-package testing;
+package launcherStrat;
 
 import java.util.Random;
 
@@ -19,7 +19,7 @@ public class BaseBot {
     protected Team myTeam, theirTeam;
     static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	static Random rand;
-	int[] offsets = {0,1,2,3,4,5,6,7};
+	int[] offsets = {0,1,2,3};
 
 	public MapLocation previous;
 	
@@ -213,16 +213,14 @@ public class BaseBot {
     }
     
     public MapLocation average(RobotInfo[] bots) {
-    	int length = bots.length;
-    	int totalX, totalY, count;
-    	totalX = totalY = count = 0;
-    	for (int i = length; --i>=0;) {
-    		RobotInfo r = bots[i];
-    		totalX = r.location.x;
-    		totalY = r.location.y;
-    		count++;
+    	if(bots.length == 0) return null;
+    	int totalX = 0;
+    	int totalY = 0;
+    	for(RobotInfo ri: bots){
+    		totalX += ri.location.x;
+    		totalY += ri.location.y;
     	}
-    	return new MapLocation(totalX/count, totalY/count);
+    	return new MapLocation(totalX/bots.length, totalY/bots.length);
     }
     
     public MapLocation closestLocation(MapLocation currRally, MapLocation[] ml)
@@ -247,6 +245,9 @@ public class BaseBot {
     	
     	RobotInfo[] transferable = rc.senseNearbyRobots(rc.getLocation(), GameConstants.SUPPLY_TRANSFER_RADIUS_SQUARED, rc.getTeam());
     	for(RobotInfo ri:transferable){
+    		if(ri.type == RobotType.MISSILE){
+    			continue;
+    		}
     		if(ri.supplyLevel < minSupply){
     			minSupply = ri.supplyLevel;
     			toTransfer = ri.location;
@@ -280,15 +281,27 @@ public class BaseBot {
 		int offsetIndex = 0;
 		int dirint = directionToInt(d);
 		boolean blocked = false;
-		while (offsetIndex < 8 && 
+		while (offsetIndex < offsets.length && 
 				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
 						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])) ||
 						rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8]).equals(previous))) {
 			offsetIndex++;
 		}
-		if (offsetIndex < 8) {
+		if (offsetIndex < offsets.length) {
 			previous = rc.getLocation();
 			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
+		}
+//		else if(offsets.length == 5){
+//			offsets = new int[4];
+//			offsets[0] = 0;
+//			offsets[1] = 1;
+//			offsets[2] = 2;
+//			offsets[3] = 3;
+//		}
+		else{
+			offsets[1] *= -1;
+			offsets[2] *= -1;
+			offsets[3] *= -1;
 		}
 	}
     

@@ -1,4 +1,4 @@
-package testing;
+package launcherStrat;
 
 import battlecode.common.*;
 
@@ -60,15 +60,24 @@ public class Miner extends BaseBot {
 	public void optimalMove() throws GameActionException{
 		Direction dir = facing;
 		double maxOre = 5;
+		int minBaseDist = rc.getLocation().add(dir).distanceSquaredTo(myHQ);
 		if(rc.canMove(dir) && isSafe(rc.getLocation().add(dir))) maxOre = rc.senseOre(rc.getLocation().add(dir));
 //		Direction[] directions = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST, Direction.NORTH_EAST, Direction.SOUTH_EAST, Direction.SOUTH_WEST, Direction.NORTH_WEST};
 		Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 		for(Direction d: directions){
 			if(rc.canMove(d) && isSafe(rc.getLocation().add(d))){
 				double curr = rc.senseOre(rc.getLocation().add(d));
+				int dist = rc.getLocation().add(d).distanceSquaredTo(myHQ);
 				if(curr > maxOre){
 					maxOre = curr;
 					dir = d;
+					minBaseDist = dist;
+				}
+				else if(curr == maxOre){
+					if(dist < minBaseDist){
+						minBaseDist = dist;
+						dir = d;
+					}
 				}
 			}
 		}

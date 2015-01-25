@@ -1,4 +1,4 @@
-package testing;
+package launcherStrat;
 
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;

@@ -1,44 +1,85 @@
-package testing;
+package launcherStrat;
 
 import battlecode.common.*;
 
 public class Launcher extends BaseBot {
 	
-	private RobotController rc;
-	private MapLocation targetLoc;
+	private boolean attackTarget;
+	MapLocation targetLoc;
 	
-	public Launcher(RobotController rc){
-		super(rc);
-		targetLoc = null;
-	}
+	public Launcher(RobotController rc) throws GameActionException {
+        super(rc);
+        targetLoc = null;
+    }
 	
 	public void execute() throws GameActionException {
 		int numMissiles = rc.getMissileCount();
 		MapLocation cur = rc.getLocation();
-		RobotInfo[] enemies = rc.senseNearbyRobots(35, rc.getTeam().opponent());
+		RobotInfo[] enemies = rc.senseNearbyRobots(cur, 36, theirTeam);
 		MapLocation average = average(enemies);
 		
 		if (rc.isWeaponReady() && numMissiles > 0) { //if we can shoot and there are enemies, shoot!
-			if (enemies.length>0) {
+			if (enemies.length > 0 && average != null) {
 				launchMissile(cur, average);
 				if (numMissiles == 0)
 					targetLoc = cur.subtract(cur.directionTo(average)); //if we've shot all our missiles, retreat
 			}
 		}
 		
+		if(rc.isCoreReady()){
+			micro();
+		}
+		
 		if (rc.isCoreReady()) {
-			if(evaluateSafety(cur)) {
-				targetLoc = cur.subtract(cur.directionTo(average)); //if we're not safe, retreat
-			}
-			if (targetLoc != null)
-				tryMove(cur.directionTo(targetLoc));
-			else {
-				int x = rc.readBroadcast(1001); //go to rally point
-				int y = rc.readBroadcast(1002);
-				targetLoc = new MapLocation(x, y);
-				tryMove(cur.directionTo(targetLoc));
+    		if(rc.readBroadcast(2000) == 1){
+    			micro();
+    			if(rc.isCoreReady()){
+	    			attackTarget = true;
+	    			int rallyX = rc.readBroadcast(2001);
+		            int rallyY = rc.readBroadcast(2002);
+		            targetLoc = new MapLocation(rallyX, rallyY);
+		            tryMove(rc.getLocation().directionTo(targetLoc));
+    			}
+    		}
+    		else{
+    			micro();
+    			if(rc.isCoreReady()){
+	    			attackTarget = false;
+		            int rallyX = rc.readBroadcast(1001);
+		            int rallyY = rc.readBroadcast(1002);
+		            targetLoc = new MapLocation(rallyX, rallyY);
+	//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
+	//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
+		            tryMove(rc.getLocation().directionTo(targetLoc));
+    			}
+    		}
+        }
+		
+		transferSupplies();
+		rc.yield();
+	}
+	
+	public void micro() throws GameActionException{
+		RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 36, theirTeam);
+		for(RobotInfo e: enemies){
+			MapLocation loc = canMoveHit(e);
+			if(loc != null){
+				tryMove(loc.directionTo(rc.getLocation()));
+				return;
 			}
 		}
+	}
+	
+	public MapLocation canMoveHit(RobotInfo ri){
+		MapLocation curr = rc.getLocation();
+		int xdif = Math.abs(ri.location.x - curr.x);
+		int ydif = Math.abs(ri.location.y - curr.y);
+		if(xdif != 0) xdif--;
+		if(ydif != 0) ydif--;
+		if(ri.type.attackRadiusSquared >= xdif * xdif + ydif * ydif){
+			return ri.location;
+		}
+		return null;
 	}
 	
 	private void launchMissile(MapLocation cur, MapLocation average) throws GameActionException { //launches missle in direction of enemy average position
