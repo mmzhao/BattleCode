@@ -60,14 +60,38 @@ public class Launcher extends BaseBot {
 	}
 	
 	public void micro() throws GameActionException{
-		RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 36, theirTeam);
-		for(RobotInfo e: enemies){
-			MapLocation loc = canMoveHit(e);
-			if(loc != null){
-				tryMove(loc.directionTo(rc.getLocation()));
-				return;
-			}
-		}
+		RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 24, theirTeam);
+    	int length = enemies.length;
+    	if(length == 0) return;
+    	boolean noAttackersInRange = true;
+    	for(int i = length - 1; --i>=0;){
+    		RobotType iType = enemies[i].type;
+    		if(iType == RobotType.TOWER || iType == RobotType.HQ) continue;
+    		if(iType.attackRadiusSquared >= enemies[i].location.distanceSquaredTo(rc.getLocation())){
+    			noAttackersInRange = false;
+    			break;
+    		}
+    	}
+    	if(noAttackersInRange){ 
+    		return;
+    	}
+    	int totalX = 0;
+    	int totalY = 0;
+    	for(int i = length; --i>0;){
+    		totalX += enemies[i].location.x;
+    		totalY += enemies[i].location.y;
+    	}
+    	MapLocation enemyCenter = new MapLocation(totalX/enemies.length, totalY/enemies.length);
+//    	tryMove(enemyCenter.directionTo(rc.getLocation()));
+    	tryMove(rc.getLocation().directionTo(closestLocation(rc.getLocation(), rc.senseTowerLocations())));
+//		RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 36, theirTeam);
+//		for(RobotInfo e: enemies){
+//			MapLocation loc = canMoveHit(e);
+//			if(loc != null){
+//				tryMove(loc.directionTo(rc.getLocation()));
+//				return;
+//			}
+//		}
 	}
 	
 	public MapLocation canMoveHit(RobotInfo ri){

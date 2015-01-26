@@ -5,20 +5,11 @@ import battlecode.common.*;
 public class Missile extends BaseBot{
 	
 	public int turnsLived;
-	int[] offsets = {0,1,-1,2,-2,3,-3};
-	public Direction dir;
+	int[] offsets = {0,1,-1,2,-2};
 	
 	public Missile(RobotController rc) throws GameActionException {
 		super(rc);
 		turnsLived = 0;
-		MapLocation cur = rc.getLocation();
-		RobotInfo[] allies = rc.senseNearbyRobots(cur, 8, myTeam);
-		dir = rc.getLocation().directionTo(theirHQ);
-		for(RobotInfo ally: allies){
-			if(ally.type == RobotType.LAUNCHER){
-				dir = ally.location.directionTo(cur);
-			}
-		}
 	}
 	
 	public void execute() throws GameActionException { 
@@ -30,19 +21,23 @@ public class Missile extends BaseBot{
 		
 		int range = 5 - turnsLived + 1;
 		if(rc.isCoreReady()){
-//			RobotInfo[] enemies = rc.senseNearbyRobots(cur, range * range + range, theirTeam);
+			RobotInfo[] enemies = rc.senseNearbyRobots(cur, range * range + range, theirTeam);
 //			MapLocation avg = average(enemies);
 //			if(avg != null){
 //				rc.setIndicatorString(1, avg.x + " " + avg.y);
 //				tryMove(cur.directionTo(avg));
 //			}
-			tryMove(dir);
+			tryMove(cur.directionTo(enemies[0].location));
 		}
+		
+
+		System.out.print(Clock.getBytecodeNum() + "   ");
 		
 		if (inPositionToExplode(cur))
 			rc.explode();
 		
-//		System.out.println(Clock.getBytecodeNum());
+		System.out.println(Clock.getBytecodeNum());
+		
 		
 		rc.yield();
 	}

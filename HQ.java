@@ -65,6 +65,11 @@ import battlecode.common.TerrainTile;
 //2500 -- per turn mining total - if less than 1 avg then stop building miners
 
 //3000 -- attacking units yolo rush
+
+//3500 -- number of missile targets
+//35n1 -- x location for nth target
+//35n2 -- y location for nth target
+
 //4000 -- yolo rush mode, 0-no, 1-yes
 
 //5000 -- total ore used
@@ -90,7 +95,7 @@ public class HQ extends BaseBot {
 	public void execute() throws GameActionException {
 		
 		//amount of every ally unit
-		getInitialInfoTankSpecial();
+		getInitialInfoLauncherSpecial();
 
 		//attack if possible
 		if (rc.isWeaponReady()) {
@@ -130,9 +135,10 @@ public class HQ extends BaseBot {
 //			soldierRushStrat();
 			
 			//set up rally point
-//			rallyPoint = normalRushRally();
+			rallyPoint = closestLocation(myHQ, rc.senseEnemyTowerLocations());
+			rallyPoint = normalRushRally();
 //			rallyPoint = new MapLocation((myHQ.x + theirHQ.x)/2, (myHQ.y + theirHQ.y)/2);
-			rallyPoint = theirHQ;
+//			rallyPoint = theirHQ;
 			if(Clock.getRoundNum() < 1500){
 				setTarget();
 			}
@@ -206,6 +212,10 @@ public class HQ extends BaseBot {
 		return targetTower;
 //		if(rc.senseEnemyTowerLocations().length == 0) return theirHQ;
 //		return closestLocation(new MapLocation(rc.readBroadcast(1001), rc.readBroadcast(1002)), rc.senseEnemyTowerLocations());
+	}
+	
+	public void setMissileTargets(){
+		
 	}
 	
 	public void setTarget() throws GameActionException{
@@ -427,7 +437,7 @@ public class HQ extends BaseBot {
 		}
 		
 		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
-						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 500) / 100)) {
+						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 300) / 30)) {
 			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
 		}
 	}
@@ -525,6 +535,70 @@ public class HQ extends BaseBot {
 		}
 		return rallyPoint;
 	}
+	
+	//SPECIALIZED FOR LAUNCHERS CHANGE LATER
+		public void getInitialInfoLauncherSpecial() throws GameActionException {
+			//reset tank info
+			rc.broadcast(2003, 0);
+			rc.broadcast(2004, 0);
+			rc.broadcast(2005, 0);
+			
+			RobotInfo[] ri = rc.senseNearbyRobots(rc.getLocation(), 100000000,
+					rc.getTeam());
+			units = new int[10];
+			buildings = new int[10];
+			for (int i = 0; i < ri.length; i++) {
+				if (ri[i].type == RobotType.BEAVER) {
+					units[1]++;
+				} else if (ri[i].type == RobotType.MINER) {
+					units[2]++;
+				} else if (ri[i].type == RobotType.SOLDIER) {
+					units[3]++;
+				} else if (ri[i].type == RobotType.BASHER) {
+					units[4]++;
+				} else if (ri[i].type == RobotType.DRONE) {
+					units[5]++;
+				} else if (ri[i].type == RobotType.TANK) {
+					units[6]++;
+				} else if (ri[i].type == RobotType.LAUNCHER) {
+					units[7]++;
+					rc.broadcast(2003, rc.readBroadcast(2003) + 1);
+					rc.broadcast(2004, rc.readBroadcast(2004) + ri[i].location.x);
+					rc.broadcast(2005, rc.readBroadcast(2005) + ri[i].location.y);
+				} else if (ri[i].type == RobotType.COMMANDER) {
+					units[8]++;
+				} else if (ri[i].type == RobotType.COMPUTER) {
+					units[9]++;
+				} else if (ri[i].type == RobotType.BARRACKS) {
+					buildings[1]++;
+				} else if (ri[i].type == RobotType.MINERFACTORY) {
+					buildings[2]++;
+				} else if (ri[i].type == RobotType.HELIPAD) {
+					buildings[3]++;
+				} else if (ri[i].type == RobotType.SUPPLYDEPOT) {
+					buildings[4]++;
+				} else if (ri[i].type == RobotType.TANKFACTORY) {
+					buildings[5]++;
+				} else if (ri[i].type == RobotType.TECHNOLOGYINSTITUTE) {
+					buildings[6]++;
+				} else if (ri[i].type == RobotType.AEROSPACELAB) {
+					buildings[7]++;
+				} else if (ri[i].type == RobotType.TRAININGFIELD) {
+					buildings[8]++;
+				} else if (ri[i].type == RobotType.HANDWASHSTATION) {
+					buildings[9]++;
+				}
+			}
+			
+//			MapLocation[] towers = rc.senseTowerLocations();
+//			rc.broadcast(20, towers.length);
+//			for(int i = 0; i < towers.length; i++){
+//				rc.broadcast(21 + 10 * i, towers[i].x);
+//				rc.broadcast(22 + 10 * i, towers[i].y);
+//				rc.broadcast(23 + 10 * i, rc.senseNearbyRobots(towers[i], 9, myTeam).length);
+//			}
+			
+		}
 
 	//SPECIALIZED FOR TANKS CHANGE LATER
 	public void getInitialInfoTankSpecial() throws GameActionException {

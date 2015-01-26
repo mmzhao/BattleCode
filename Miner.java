@@ -39,7 +39,7 @@ public class Miner extends BaseBot {
     	        tryMove(rc.getLocation().directionTo(rallyPoint));
             }
     		else{
-	    		if(rc.senseOre(rc.getLocation()) >= 5){
+	    		if(rc.senseOre(rc.getLocation()) >= 3){
 		    		if(rc.canMine()){
 		    			rc.broadcast(2500, (int) (rc.readBroadcast(2500) + (rc.senseOre(rc.getLocation()) / 4)));
 		    			rc.mine();
@@ -59,7 +59,7 @@ public class Miner extends BaseBot {
 	
 	public void optimalMove() throws GameActionException{
 		Direction dir = facing;
-		double maxOre = 5;
+		double maxOre = 3;
 		int minBaseDist = rc.getLocation().add(dir).distanceSquaredTo(myHQ);
 		if(rc.canMove(dir) && isSafe(rc.getLocation().add(dir))) maxOre = rc.senseOre(rc.getLocation().add(dir));
 //		Direction[] directions = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST, Direction.NORTH_EAST, Direction.SOUTH_EAST, Direction.SOUTH_WEST, Direction.NORTH_WEST};
@@ -81,7 +81,7 @@ public class Miner extends BaseBot {
 				}
 			}
 		}
-		if(maxOre > 5 && rc.canMove(dir) && isSafe(rc.getLocation().add(dir))){
+		if(maxOre > 3 && rc.canMove(dir) && isSafe(rc.getLocation().add(dir))){
 			previous = rc.getLocation();
 			rc.move(dir);
 			facing = dir;

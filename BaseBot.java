@@ -19,7 +19,7 @@ public class BaseBot {
     protected Team myTeam, theirTeam;
     static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	static Random rand;
-	int[] offsets = {0,1,2,3};
+	int[] offsets = {0,1,-1,2,3,4};
 
 	public MapLocation previous;
 	
@@ -173,44 +173,44 @@ public class BaseBot {
         rc.attackLocation(toAttack);
     }
     
-    public void micro() throws GameActionException{
-    	MapLocation center = new MapLocation(rc.readBroadcast(2004), rc.readBroadcast(2005));
-    	RobotInfo[] enemies = rc.senseNearbyRobots(center, 100, theirTeam);
-    	RobotInfo[] allies = rc.senseNearbyRobots(center, 25, myTeam);
-    	int enemyStrength = 0;
-    	for(RobotInfo e: enemies){
-    		if(e.type == RobotType.TOWER || e.type == RobotType.HQ || e.location.distanceSquaredTo(rc.getLocation()) > e.type.attackRadiusSquared){
-    			continue;
-    		}
-    		if(e.weaponDelay < 1){
-    			enemyStrength += e.health * e.type.attackPower;
-    		}
-    		else{
-    			enemyStrength += e.health;
-    		}
-    	}
-    	int allyStrength = 0;
-    	for(RobotInfo a: allies){
-    		if(a.type == RobotType.TOWER || a.type == RobotType.HQ){
-    			continue;
-    		}
-    		if(a.weaponDelay < 1){
-    			allyStrength += a.health * a.type.attackPower;
-    		}
-    		else{
-    			allyStrength += a.health;
-    		}
-    	}
-//    	System.out.println(enemyStrength + "    " + allyStrength);
-    	if(enemyStrength > allyStrength){
-    		if(rc.senseTowerLocations().length > 0){
-    			tryMove(rc.getLocation().directionTo(closestLocation(center, rc.senseTowerLocations())));
-    		}
-    		else{
-    			tryMove(rc.getLocation().directionTo(myHQ));
-    		}
-    	}
-    }
+//    public void micro() throws GameActionException{
+//    	MapLocation center = new MapLocation(rc.readBroadcast(2004), rc.readBroadcast(2005));
+//    	RobotInfo[] enemies = rc.senseNearbyRobots(center, 100, theirTeam);
+//    	RobotInfo[] allies = rc.senseNearbyRobots(center, 25, myTeam);
+//    	int enemyStrength = 0;
+//    	for(RobotInfo e: enemies){
+//    		if(e.type == RobotType.TOWER || e.type == RobotType.HQ || e.location.distanceSquaredTo(rc.getLocation()) > e.type.attackRadiusSquared){
+//    			continue;
+//    		}
+//    		if(e.weaponDelay < 1){
+//    			enemyStrength += e.health * e.type.attackPower;
+//    		}
+//    		else{
+//    			enemyStrength += e.health;
+//    		}
+//    	}
+//    	int allyStrength = 0;
+//    	for(RobotInfo a: allies){
+//    		if(a.type == RobotType.TOWER || a.type == RobotType.HQ){
+//    			continue;
+//    		}
+//    		if(a.weaponDelay < 1){
+//    			allyStrength += a.health * a.type.attackPower;
+//    		}
+//    		else{
+//    			allyStrength += a.health;
+//    		}
+//    	}
+////    	System.out.println(enemyStrength + "    " + allyStrength);
+//    	if(enemyStrength > allyStrength){
+//    		if(rc.senseTowerLocations().length > 0){
+//    			tryMove(rc.getLocation().directionTo(closestLocation(center, rc.senseTowerLocations())));
+//    		}
+//    		else{
+//    			tryMove(rc.getLocation().directionTo(myHQ));
+//    		}
+//    	}
+//    }
     
     public MapLocation average(RobotInfo[] bots) {
     	if(bots.length == 0) return null;
@@ -302,6 +302,7 @@ public class BaseBot {
 			offsets[1] *= -1;
 			offsets[2] *= -1;
 			offsets[3] *= -1;
+			tryMove(d);
 		}
 	}
     
