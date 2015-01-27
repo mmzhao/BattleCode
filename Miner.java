@@ -14,7 +14,7 @@ public class Miner extends BaseBot {
 		targetLoc = null;
 		facing = myHQ.directionTo(rc.getLocation());
 		turnsSinceMined = 0;
-		minOre = 5;
+		minOre = 3;
 	}
 
 	public void execute() throws GameActionException {
@@ -82,9 +82,10 @@ public class Miner extends BaseBot {
 	
 	public void optimalMove() throws GameActionException{
 		Direction dir = facing;
-		double minOre = 3;
 		int minBaseDist = rc.getLocation().add(dir).distanceSquaredTo(myHQ);
-		if(rc.canMove(dir) && isSafe(rc.getLocation().add(dir))) maxOre = rc.senseOre(rc.getLocation().add(dir));
+		double minOre = this.minOre - .001;
+		if(rc.canMove(dir) && isSafe(rc.getLocation().add(dir))) 
+			minOre = rc.senseOre(rc.getLocation().add(dir));
 //		Direction[] directions = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST, Direction.NORTH_EAST, Direction.SOUTH_EAST, Direction.SOUTH_WEST, Direction.NORTH_WEST};
 		Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 		for(Direction d: directions){
@@ -104,7 +105,7 @@ public class Miner extends BaseBot {
 				}
 			}
 		}
-		if(minOre > 3 && rc.canMove(dir) && isSafe(rc.getLocation().add(dir))){
+		if(minOre > this.minOre && rc.canMove(dir) && isSafe(rc.getLocation().add(dir))){
 			previous = rc.getLocation();
 			rc.move(dir);
 			facing = dir;
