@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherSoldierStrat;
 
 import java.util.Random;
 
@@ -148,9 +148,13 @@ public class Beaver extends BaseBot {
 	}
 
 	public boolean startBuilding(RobotType type) throws GameActionException {
+		int cost = type.oreCost;
+		if (type == RobotType.SUPPLYDEPOT) {
+			cost += 250;
+		}
 		if(rc.getTeam() == Team.A){
 			if (rc.isCoreReady()) {
-				if (rc.getTeamOre() >= type.oreCost) {
+				if (rc.getTeamOre() >= cost) {
 					if(rc.canBuild(Direction.SOUTH, type)){
 						rc.build(Direction.SOUTH, type);
 						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
@@ -178,10 +182,10 @@ public class Beaver extends BaseBot {
 		}
 		else{
 			if (rc.isCoreReady()) {
-				if (rc.getTeamOre() >= type.oreCost) {
+				if (rc.getTeamOre() >= cost) {
 					if(rc.canBuild(Direction.NORTH, type)){
 						rc.build(Direction.NORTH, type);
-						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
+						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost );
 						return true;
 					}
 					else if(rc.canBuild(Direction.EAST, type)){
