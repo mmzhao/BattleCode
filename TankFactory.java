@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherStratPlusSoldiers;
 
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;

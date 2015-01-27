@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherStratPlusSoldiers;
 
 import battlecode.common.*;
 
@@ -12,7 +12,7 @@ public class MinerFactory extends BaseBot {
 		int numMiners = rc.readBroadcast(getUnit(RobotType.MINER) + 10);
 		rc.setIndicatorString(0, "Number of Miners: " + numMiners);
 		if (rc.isCoreReady()) {
-			if (numMiners < 30 && rc.getTeamOre() > RobotType.MINER.oreCost) {
+			if (numMiners < 20 + (myHQ.distanceSquaredTo(theirHQ) / 1000) && rc.getTeamOre() > RobotType.MINER.oreCost) {
 //			if ((numMiners < 30 || (rc.readBroadcast(2500) / rc.readBroadcast(getUnit(RobotType.MINER) + 10)) > 10) && rc.getTeamOre() > RobotType.MINER.oreCost) {
 				spawn();
 			}

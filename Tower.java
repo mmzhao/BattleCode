@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherStratPlusSoldiers;
 
 import battlecode.common.GameActionException;
 import battlecode.common.RobotController;

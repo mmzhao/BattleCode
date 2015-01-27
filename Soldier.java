@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherStratPlusSoldiers;
 
 import battlecode.common.Clock;
 import battlecode.common.Direction;
@@ -20,23 +20,12 @@ public class Soldier extends BaseBot{
         towerToProtect = -1;
         attackTarget = false;
         targetLoc = null;
-//        if(rc.getID() % 2 == 0){
-//        	offsets[1] *= -1;
-//			offsets[2] *= -1;
-//			offsets[3] *= -1;
-//        }
     }
 
     public void execute() throws GameActionException {
     	rc.setIndicatorString(1, towerToProtect + "");
         RobotInfo[] enemies = getEnemiesInAttackingRange(rc.getType());
         
-        
-        
-        //micro
-        if(rc.isCoreReady()){
-//        	micro();
-        }
         
         if (enemies.length > 0) {
             //attack!
@@ -45,16 +34,22 @@ public class Soldier extends BaseBot{
             }
         }
         
+        RobotInfo[] nearbyEnemies = rc.senseNearbyRobots(rc.getLocation(), 25, theirTeam);
+        targetLoc = getTarget(nearbyEnemies);
+        
         if (rc.isCoreReady()) {
+        	if(targetLoc != null){
+        		tryMove(rc.getLocation().directionTo(targetLoc));
+        	}
 //			micro();
 			if(rc.isCoreReady()){
     			attackTarget = false;
 	            int rallyX = rc.readBroadcast(1001);
 	            int rallyY = rc.readBroadcast(1002);
-	            targetLoc = new MapLocation(rallyX, rallyY);
+	            MapLocation target = new MapLocation(rallyX, rallyY);
 //	            rc.setIndicatorString(0, rallyX + " " + rallyY);
 //	            rc.setIndicatorString(0, rallyX + " " + rallyY);
-	            tryMove(rc.getLocation().directionTo(targetLoc));
+	            tryMove(rc.getLocation().directionTo(target));
 			}
         }
         
@@ -63,28 +58,140 @@ public class Soldier extends BaseBot{
         rc.yield();
     }
     
-    public void tryMove(Direction d) throws GameActionException {
-		int offsetIndex = 0;
-		int dirint = directionToInt(d);
-		boolean blocked = false;
-		while (offsetIndex < offsets.length &&
-				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
-						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])))) {
-			offsetIndex++;
-		}
-		if (offsetIndex < offsets.length) {
-			previous = rc.getLocation();
-			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
-		}
-		else{
-			offsets[1] *= -1;
-			offsets[2] *= -1;
-			offsets[3] *= -1;
-		}
-	}
+    public MapLocation getTarget(RobotInfo[] nearby) throws GameActionException{
+		MapLocation target = null;
+		MapLocation cur = rc.getLocation();
+		int minValue = Integer.MAX_VALUE;
+    	for(RobotInfo ri: nearby){
+    		int value = cur.distanceSquaredTo(ri.location) - getValue(ri);
+    		if(value < minValue){
+    			minValue = value;
+    			target = ri.location;
+    		}
+    	}
+    	return target;
+    	
+    }
     
-    
+    public int getValue(RobotInfo ri) throws GameActionException {
+
+    	int currValue = -1;
+    	if(ri.type == RobotType.TOWER || ri.type == RobotType.HQ){
+    		currValue = 0;
+    	}
+    	else if(getBuilding(ri.type) != 0){
+    		currValue = 1;
+    	}
+    	else{
+        	if(ri.type == RobotType.BEAVER){
+        		currValue = 2;
+        	}
+        	else if(ri.type == RobotType.MINER){
+        		currValue = 6;
+        	}
+        	else if(ri.type == RobotType.SOLDIER){
+        		currValue = 2;
+        	}
+        	else if(ri.type == RobotType.BASHER){
+        		currValue = 3;
+        	}
+        	else if(ri.type == RobotType.DRONE){
+        		currValue = 3;
+        	}
+        	else if(ri.type == RobotType.TANK){
+        		currValue = 1;
+        	}
+        	else if(ri.type == RobotType.LAUNCHER){
+        		currValue = 8;
+        	}
+        	else if(ri.type == RobotType.COMMANDER){
+        		currValue = 7;
+        	}
+        	else if(ri.type == RobotType.COMPUTER){
+        		currValue = 1;
+        	}
+        	else if(ri.type == RobotType.MISSILE){
+        		currValue = rc.readBroadcast(getUnit(RobotType.SOLDIER)) / 2;
+        	}
+        	if(ri.type != RobotType.MISSILE){
+        		if(ri.health < rc.getType().attackPower){
+        			currValue += 10;
+        		}
+        	}
+        	else{
+        		if(ri.health == 1){
+        			currValue += 10;
+        		}
+        	}
+        }
+        return currValue;
+    }
 	
+    public void attackForValue(RobotInfo[] enemies) throws GameActionException {
+        if (enemies.length == 0) {
+            return;
+        }
+        
+        int maxValue = -1;
+        MapLocation toAttack = null;
+        for (RobotInfo ri : enemies) {
+        	int currValue = -1;
+        	if(ri.type == RobotType.TOWER || ri.type == RobotType.HQ){
+        		currValue = 0;
+        	}
+        	else if(getBuilding(ri.type) != 0){
+        		currValue = 1;
+        	}
+        	else{
+	        	if(ri.type == RobotType.BEAVER){
+	        		currValue = 2;
+	        	}
+	        	else if(ri.type == RobotType.MINER){
+	        		currValue = 6;
+	        	}
+	        	else if(ri.type == RobotType.SOLDIER){
+	        		currValue = 2;
+	        	}
+	        	else if(ri.type == RobotType.BASHER){
+	        		currValue = 3;
+	        	}
+	        	else if(ri.type == RobotType.DRONE){
+	        		currValue = 3;
+	        	}
+	        	else if(ri.type == RobotType.TANK){
+	        		currValue = 1;
+	        	}
+	        	else if(ri.type == RobotType.LAUNCHER){
+	        		currValue = 8;
+	        	}
+	        	else if(ri.type == RobotType.COMMANDER){
+	        		currValue = 7;
+	        	}
+	        	else if(ri.type == RobotType.COMPUTER){
+	        		currValue = 1;
+	        	}
+	        	else if(ri.type == RobotType.MISSILE){
+	        		currValue = rc.readBroadcast(getUnit(RobotType.SOLDIER)) / 2;
+	        	}
+	        	if(ri.type != RobotType.MISSILE){
+	        		if(ri.health < rc.getType().attackPower){
+	        			currValue += 10;
+	        		}
+	        	}
+	        	else{
+	        		if(ri.health == 1){
+	        			currValue += 10;
+	        		}
+	        	}
+        	}
+	        if(currValue > maxValue){
+	        	maxValue = currValue;
+	        	toAttack = ri.location;
+	        }
+        }
+        rc.attackLocation(toAttack);
+    }
+    
     public boolean isSafe(MapLocation ml) throws GameActionException{
     	MapLocation[] enemyTowers = rc.senseEnemyTowerLocations();
     	for(MapLocation m: enemyTowers){
@@ -100,7 +207,7 @@ public class Soldier extends BaseBot{
     		HQRadiusAdd = 11;
     	}
     	if(ml.distanceSquaredTo(theirHQ) <= RobotType.HQ.attackRadiusSquared + HQRadiusAdd){
-    		if(targetLoc == null || targetLoc.x != theirHQ.x || targetLoc.y != theirHQ.y){
+    		if(rc.readBroadcast(3000) == 0 || targetLoc == null || targetLoc.x != theirHQ.x || targetLoc.y != theirHQ.y){
         		return false;
     		}
     	}
@@ -108,12 +215,6 @@ public class Soldier extends BaseBot{
     	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 36, theirTeam);
     	for(RobotInfo enemy:enemies){
     		if(ml.distanceSquaredTo(enemy.location) <= enemy.type.attackRadiusSquared){
-    			return false;
-    		}
-    		else if(enemy.type == RobotType.LAUNCHER && ml.distanceSquaredTo(enemy.location) <= 16){
-    			return false;
-    		}
-    		else if(enemy.type == RobotType.MISSILE && ml.distanceSquaredTo(enemy.location) <= 4){
     			return false;
     		}
     	}

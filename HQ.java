@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherStratPlusSoldiers;
 
 import battlecode.common.Clock;
 import battlecode.common.DependencyProgress;
@@ -39,14 +39,23 @@ import battlecode.common.TerrainTile;
 //22 + 10n -- y position for turret n
 //23 + 10n -- number of defenders for turret n
 
-//98 -- supply queue start
-//99 -- supply queue end
-//100 + n -- ID of nth supply needy robot
+//50 -- supply loc priority
+//51 -- supply loc x pos
+//52 -- supply loc y pos
+//53 -- id
 
-//1500 -- number of good mining spots FOR NOW ONLY USING ONE SPOT
-//15n1 -- mining spot n x position
-//15n2 -- mining spot n y position
-//15n3 -- spot value in 14 by 14 grid
+//96 -- launcher supply queue start
+//97 -- launcher supply queue end
+//98 -- miner supply queue start
+//99 -- miner supply queue end
+
+//100 + 3n -- ID of nth supply needy miner
+//101 + 3n -- x loc
+//102 + 3n -- y loc
+
+//1000 + 3n -- ID of nth supply needly launcher
+//1001 + 3n -- x loc
+//1002 + 3n -- y loc
 
 //2000 -- target boolean, 0-no, 1-yes
 //2001 -- extra unit target point x
@@ -95,8 +104,6 @@ public class HQ extends BaseBot {
 		this.myHQ = rc.senseHQLocation();
 		this.theirHQ = rc.senseEnemyHQLocation();
 		inQueue = new int[10];
-		rc.broadcast(98, 100);
-        rc.broadcast(99, 100);
         missiles = 0;
 	}
 
@@ -115,21 +122,26 @@ public class HQ extends BaseBot {
 		
 		//set up strat
 		//IF NOT USING TANK STRAT CHANGE OTHER CLASS ATTACK PATTERNS TO WHAT TANK HAS NOW - VALUE ATTACKS
-		MapLocation rallyPoint;
-		int mapSize = myHQ.distanceSquaredTo(theirHQ);
-		if(mapSize < 500){
-//			aggroTankStrat();
-			soldierRushStrat();
-			
-			//set up rally point
-			rallyPoint = theirHQ;
-			if(Clock.getRoundNum() < 1500){
-				setTarget();
+		MapLocation rallyPoint = theirHQ;
+//		int mapSize = myHQ.distanceSquaredTo(theirHQ);
+		
+		int mapSize = Math.max(Math.abs(myHQ.x - theirHQ.x), Math.abs(myHQ.y - theirHQ.y));
+		if(mapSize <= 60){
+			launcherStratPlusSoldiers();
+			if(Clock.getRoundNum() < .4 * rc.getRoundLimit()){
+				
 			}
-			else if(Clock.getRoundNum() < 1800){
-				rc.broadcast(2000, 0); //remove all targets
+			else if(Clock.getRoundNum() < .75 * rc.getRoundLimit()){
+//				rc.broadcast(2000, 0); //remove all targets
 				rc.broadcast(3000, 1); //start attack rush
-				rallyPoint = nextTower();
+//				rallyPoint = nextTower();
+				MapLocation cur = new MapLocation(rc.readBroadcast(2004)/getUnit(RobotType.LAUNCHER), rc.readBroadcast(2005)/getUnit(RobotType.LAUNCHER));
+				rallyPoint = closestLocation(cur, rc.senseEnemyTowerLocations());
+				Direction dir = cur.directionTo(rallyPoint);
+				Direction toHQ = cur.directionTo(theirHQ);
+				if(dir != toHQ && dir != toHQ.rotateLeft() && dir != toHQ.rotateRight()){
+					rallyPoint = theirHQ;;
+				}
 			}
 			else{
 				rc.broadcast(4000, 1); //throw everything
@@ -138,27 +150,27 @@ public class HQ extends BaseBot {
 		} //PERHAPS MAKE A MIDDLE GROUND
 		else{
 //			tankStratWithCommander();
-			launcherStrat1();
+			launcherStrat2();
 //			tankStrat(); 
 //			soldierRushStrat();
 			
 			//set up rally point
-			rallyPoint = closestLocation(myHQ, rc.senseEnemyTowerLocations());
+//			rallyPoint = closestLocation(myHQ, rc.senseEnemyTowerLocations());
 //			rallyPoint = normalRushRally();
 //			rallyPoint = new MapLocation((myHQ.x + theirHQ.x)/2, (myHQ.y + theirHQ.y)/2);
-//			rallyPoint = theirHQ;
-//			if(Clock.getRoundNum() < 1500){
-//				setTarget();
-//			}
-//			else if(Clock.getRoundNum() < 1800){
-//				rc.broadcast(2000, 0); //remove all targets
-//				rc.broadcast(3000, 1); //start attack rush
-//				rallyPoint = nextTower();
-//			}
-//			else{
-//				rc.broadcast(4000, 1); //throw everything
-//				rallyPoint = nextTower();
-//			}
+			rallyPoint = theirHQ;
+			if(Clock.getRoundNum() < rc.getRoundLimit() * .75){
+				setTarget();
+			}
+			else if(Clock.getRoundNum() < rc.getRoundLimit() * .9){
+				rc.broadcast(2000, 0); //remove all targets
+				rc.broadcast(3000, 1); //start attack rush
+				rallyPoint = nextTower();
+			}
+			else{
+				rc.broadcast(4000, 1); //throw everything
+				rallyPoint = nextTower();
+			}
 		}
 		
 		
@@ -167,11 +179,15 @@ public class HQ extends BaseBot {
 			if(units[i] > 0) rc.broadcast(i + 10, units[i]);
 		}
 		
-//		rc.broadcast(1001, rallyPoint.x);
-//		rc.broadcast(1002, rallyPoint.y);
+		rc.broadcast(1001, rallyPoint.x);
+		rc.broadcast(1002, rallyPoint.y);
 		
 //		System.out.println(rallyPoint.x + " " + rallyPoint.y);
 
+		if(Clock.getRoundNum() + 220 > rc.getRoundLimit()){
+			addToFrontQueue(getBuilding(RobotType.HANDWASHSTATION));
+		}
+		
 		// reset Queue info
 		setUpQueueInfo();
 
@@ -231,9 +247,6 @@ public class HQ extends BaseBot {
 //		return closestLocation(new MapLocation(rc.readBroadcast(1001), rc.readBroadcast(1002)), rc.senseEnemyTowerLocations());
 	}
 	
-	public void setMissileTargets(){
-		
-	}
 	
 	public void setTarget() throws GameActionException{
 //		rc.broadcast(2000, 0);
@@ -430,8 +443,46 @@ public class HQ extends BaseBot {
 		}
 	}
 	
+	public void launcherStratPlusSoldiers() throws GameActionException {
+
+		if (buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 1) {
+			addToQueue(getBuilding(RobotType.MINERFACTORY));
+		}
+		
+		else if (buildings[getBuilding(RobotType.BARRACKS)]
+				+ inQueue[getBuilding(RobotType.BARRACKS)] < 1) {
+			addToQueue(getBuilding(RobotType.BARRACKS));
+		}
+		
+		if (buildings[getBuilding(RobotType.MINERFACTORY)]
+				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 2) {
+			addToQueue(getBuilding(RobotType.MINERFACTORY));
+		}
+
+		else if (buildings[getBuilding(RobotType.HELIPAD)]
+				+ inQueue[getBuilding(RobotType.HELIPAD)] < 1) {
+			addToQueue(getBuilding(RobotType.HELIPAD));
+		}
+
+		else if (buildings[getBuilding(RobotType.HELIPAD)] > 0 && buildings[getBuilding(RobotType.AEROSPACELAB)]
+						+ inQueue[getBuilding(RobotType.AEROSPACELAB)] < 3) {
+			addToFrontQueue(getBuilding(RobotType.AEROSPACELAB));
+		}
+		
+		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
+						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < units[getUnit(RobotType.LAUNCHER)]) {
+			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
+		}
+		
+		if(rc.getTeamOre() > 2000 && buildings[getBuilding(RobotType.AEROSPACELAB)]
+				+ inQueue[getBuilding(RobotType.AEROSPACELAB)] < 4){
+			addToFrontQueue(getBuilding(RobotType.AEROSPACELAB));
+		}
+	}
+	
 	//LARGE MAP WITH ORE
-	public void launcherStrat1() throws GameActionException {
+	public void launcherStrat2() throws GameActionException {
 
 		if (buildings[getBuilding(RobotType.MINERFACTORY)]
 				+ inQueue[getBuilding(RobotType.MINERFACTORY)] < 2) {
@@ -456,6 +507,11 @@ public class HQ extends BaseBot {
 		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
 						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 375) / 25)) {
 			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
+		}
+		
+		if(rc.getTeamOre() > 2000 && buildings[getBuilding(RobotType.AEROSPACELAB)]
+				+ inQueue[getBuilding(RobotType.AEROSPACELAB)] < 4){
+			addToFrontQueue(getBuilding(RobotType.AEROSPACELAB));
 		}
 	}
 	
@@ -581,7 +637,7 @@ public class HQ extends BaseBot {
 					units[6]++;
 				} else if (ri[i].type == RobotType.LAUNCHER) {
 					units[7]++;
-					rc.broadcast(2003, rc.readBroadcast(2003) + 1);
+//					rc.broadcast(2003, rc.readBroadcast(2003) + 1);
 					rc.broadcast(2004, rc.readBroadcast(2004) + ri[i].location.x);
 					rc.broadcast(2005, rc.readBroadcast(2005) + ri[i].location.y);
 				} else if (ri[i].type == RobotType.COMMANDER) {
@@ -632,6 +688,7 @@ public class HQ extends BaseBot {
 		
 		public MapLocation closestHitable(MapLocation loc, RobotInfo[] enemies){
 			MapLocation curr = loc;
+			double maxValue = 0;
 			int index = -1;
 			int dist1 = 11;
 			int dist2 = 11;
@@ -641,13 +698,16 @@ public class HQ extends BaseBot {
 				int smaller = Math.min(ml.x - curr.x, ml.y - curr.y);
 				int larger = Math.max(ml.x - curr.x, ml.y - curr.y);
 				if(larger > 7) continue;
-				if(smaller < dist1){
+				double value = value(enemies[i]);
+				if(value > maxValue){
+					maxValue = value;
+					index = i;
 					dist1 = smaller;
 					dist2 = larger;
-					index = i;
 				}
-				else if(smaller == dist1){
-					if(larger < dist2){
+				else if(value == maxValue){
+					if(smaller < dist1){
+						dist1 = smaller;
 						dist2 = larger;
 						index = i;
 					}
@@ -656,6 +716,60 @@ public class HQ extends BaseBot {
 			if(index != -1)
 				return enemies[index].location;
 			return null;
+		}
+		
+		public double value(RobotInfo ri){
+			double currValue = -1;
+        	if(ri.type == RobotType.TOWER || ri.type == RobotType.HQ){
+        		currValue = 0;
+        	}
+        	else if(getBuilding(ri.type) != 0){
+        		currValue = 1;
+        	}
+        	else{
+	        	if(ri.type == RobotType.BEAVER){
+	        		currValue = 2;
+	        	}
+	        	else if(ri.type == RobotType.MINER){
+	        		currValue = 6;
+	        	}
+	        	else if(ri.type == RobotType.SOLDIER){
+	        		currValue = 8;
+	        	}
+	        	else if(ri.type == RobotType.BASHER){
+	        		currValue = 7;
+	        	}
+	        	else if(ri.type == RobotType.DRONE){
+	        		currValue = 3;
+	        	}
+	        	else if(ri.type == RobotType.TANK){
+	        		currValue = 10;
+	        	}
+	        	else if(ri.type == RobotType.LAUNCHER){
+	        		currValue = 15;
+	        	}
+	        	else if(ri.type == RobotType.COMMANDER){
+	        		currValue = 5;
+	        	}
+	        	else if(ri.type == RobotType.COMPUTER){
+	        		currValue = 1;
+	        	}
+	        	else if(ri.type == RobotType.MISSILE){
+	        		currValue = 5;
+	        	}
+	        	if(ri.type != RobotType.MISSILE){
+	        		if(ri.health <= 18){
+	        			currValue += 10;
+	        		}
+	        	}
+	        	else{
+	        		if(ri.health == 1){
+	        			currValue += 10;
+	        		}
+	        	}
+        	}
+        	currValue -= ri.health/100;
+	        return currValue;
 		}
 
 	//SPECIALIZED FOR TANKS CHANGE LATER
@@ -787,7 +901,7 @@ public class HQ extends BaseBot {
 		int curr = rc.readBroadcast(0);
 		int length = Integer.toString(curr).length();
 		if (length > 8)
-			return;
+			rc.broadcast(0, curr  - (curr % 10) + num);
 		else {
 			rc.broadcast(0, curr * 10 + num);
 		}

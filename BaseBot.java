@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherStratPlusSoldiers;
 
 import java.util.Random;
 
@@ -19,7 +19,7 @@ public class BaseBot {
     protected Team myTeam, theirTeam;
     static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	static Random rand;
-	int[] offsets = {0,1,-1,2,3};
+	int[] offsets = {0,-1,1,2,3};
 	boolean calledForSupply;
 
 	public MapLocation previous;
@@ -75,6 +75,11 @@ public class BaseBot {
   //1002 -- rally y position
   //1003 -- no longer stay out of range
     
+  //1500 -- number of good mining spots FOR NOW ONLY USING ONE SPOT
+  //15n1 -- mining spot n x position
+  //15n2 -- mining spot n y position
+  //15n3 -- spot value in 14 by 14 grid
+    
     public RobotType getUnit(int type){
     	if(type == 1) return RobotType.BEAVER;
     	else if(type == 2) return RobotType.MINER;
@@ -127,29 +132,58 @@ public class BaseBot {
     	return 0;
     }
     
-	public void addToSupplyQueue() throws GameActionException {
+    public void supplyQueue(int priority) throws GameActionException{
+    	if(priority > rc.readBroadcast(50)){
+//    		rc.broadcast(51, rc.getLocation().x);
+//    		rc.broadcast(52, rc.getLocation().y);
+    		rc.broadcast(53, rc.getID());
+    		rc.broadcast(50, priority);
+    	}
+    }
+    
+	public void addToMinerSupplyQueue() throws GameActionException {
 		// int queueStart = rc.readBroadcast(98);
 		int queueEnd = rc.readBroadcast(99);
 
 		rc.broadcast(queueEnd, rc.getID());
+		rc.broadcast(queueEnd + 1, rc.getLocation().x);
+		rc.broadcast(queueEnd + 2, rc.getLocation().y);
 
-		queueEnd++;
-		if (queueEnd >= 1500) {
+		queueEnd += 3;
+		if (queueEnd >= 1000) {
 			queueEnd = 100;
 		}
 		rc.broadcast(99, queueEnd);
 	}
+	
+	public void addToLauncherSupplyQueue() throws GameActionException {
+		// int queueStart = rc.readBroadcast(96);
+		int queueEnd = rc.readBroadcast(97);
+
+		rc.broadcast(queueEnd, rc.getID());
+		rc.broadcast(queueEnd + 1, rc.getLocation().x);
+		rc.broadcast(queueEnd + 2, rc.getLocation().y);
+
+		queueEnd += 3;
+		if (queueEnd >= 1997) {
+			queueEnd = 1000;
+		}
+		rc.broadcast(97, queueEnd);
+	}
+	
 
 	public void addToSupplyQueueFront() throws GameActionException {
 		int queueStart = rc.readBroadcast(98);
 //		int queueEnd = rc.readBroadcast(99);
 
-		queueStart--;
+		queueStart -= 3;
 		if (queueStart < 100) {
 			queueStart = 1499;
 		}
 		
 		rc.broadcast(queueStart, rc.getID());
+		rc.broadcast(queueStart + 1, rc.getLocation().x);
+		rc.broadcast(queueStart + 2, rc.getLocation().y);
 		
 		rc.broadcast(98, queueStart);
 	}
@@ -294,7 +328,7 @@ public class BaseBot {
     	
     	RobotInfo[] transferable = rc.senseNearbyRobots(rc.getLocation(), GameConstants.SUPPLY_TRANSFER_RADIUS_SQUARED, myTeam);
     	for(RobotInfo ri:transferable){
-    		if(ri.type == RobotType.MISSILE || ri.type == RobotType.TOWER || ri.type == RobotType.HQ || getBuilding(ri.type) != 0){
+    		if(ri.type == RobotType.MISSILE || ri.type == RobotType.DRONE || ri.type == RobotType.TOWER || ri.type == RobotType.HQ || getBuilding(ri.type) != 0){
     			continue;
     		}
     		if(ri.supplyLevel < minSupply){
@@ -351,7 +385,35 @@ public class BaseBot {
 			for(int i = 1; i < offsets.length; i++){
 				offsets[i] *= -1;
 			}
-			tryMove(d);
+			tryMoveInverse(d);
+		}
+	}
+    
+    public void tryMoveInverse(Direction d) throws GameActionException {
+		int offsetIndex = 0;
+		int dirint = directionToInt(d);
+		boolean blocked = false;
+		while (offsetIndex < offsets.length && 
+				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
+						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])) ||
+						rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8]).equals(previous))) {
+			offsetIndex++;
+		}
+		if (offsetIndex < offsets.length) {
+			previous = rc.getLocation();
+			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
+		}
+//		else if(offsets.length == 5){
+//			offsets = new int[4];
+//			offsets[0] = 0;
+//			offsets[1] = 1;
+//			offsets[2] = 2;
+//			offsets[3] = 3;
+//		}
+		else{
+			for(int i = 1; i < offsets.length; i++){
+				offsets[i] *= -1;
+			}
 		}
 	}
     

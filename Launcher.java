@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherStratPlusSoldiers;
 
 import battlecode.common.*;
 
@@ -7,7 +7,7 @@ public class Launcher extends BaseBot {
 	private boolean attackTarget;
 	MapLocation targetLoc;
 	private int missileTargetIndex;
-//	int[] offsets = {0,1,-1,2,3,4};
+	int[] offsets = {0,-1,1,2,3};
 	
 	public Launcher(RobotController rc) throws GameActionException {
         super(rc);
@@ -52,7 +52,12 @@ public class Launcher extends BaseBot {
 				if(targetLoc == null){
 					MapLocation target = closestLocation(cur, rc.senseEnemyTowerLocations());
 					if(target == null) target = theirHQ;
-					tryMove(cur.directionTo(target));
+					Direction dir = cur.directionTo(target);
+					Direction toHQ = cur.directionTo(theirHQ);
+					if(dir != toHQ && dir != toHQ.rotateLeft() && dir != toHQ.rotateRight()){
+						dir = toHQ;
+					}
+					tryMove(dir);
 				}
 			}
 		}
@@ -61,18 +66,18 @@ public class Launcher extends BaseBot {
 		transferSupplies();
 		
 		double supplies = rc.getSupplyLevel();
-    	if(supplies < 500 || !calledForSupply){
+    	if(rc.readBroadcast(getUnit(RobotType.DRONE) + 10) > 0 && (supplies < 1000 || !calledForSupply)){
     		calledForSupply = true;
-    		addToSupplyQueueFront();
+    		supplyQueue(100);
     	}
-    	else if(supplies >= 500){
+    	else if(supplies >= 1000){
     		calledForSupply = false;
     	}
 		
 		rc.yield();
 	}
 	
-	public void tryMove(Direction d) throws GameActionException {
+	public void tryMoveLauncher(Direction d) throws GameActionException {
 		int offsetIndex = 0;
 		int dirint = directionToInt(d);
 		boolean blocked = false;
@@ -148,6 +153,24 @@ public class Launcher extends BaseBot {
 		MapLocation cur = rc.getLocation();
 		for(RobotInfo e: enemies){
 			MapLocation loc = e.location;
+			if(e.type == RobotType.TOWER){
+				if(loc.distanceSquaredTo(cur) < 25){
+					return loc;
+				}
+			}
+			else{
+				if(loc.distanceSquaredTo(cur) < e.type.attackRadiusSquared + 10){
+					return loc;
+				}
+			}
+		}
+		return null;
+	}
+	
+	public MapLocation enemiesNearby3(RobotInfo[] enemies){
+		MapLocation cur = rc.getLocation();
+		for(RobotInfo e: enemies){
+			MapLocation loc = e.location;
 			if(loc.distanceSquaredTo(cur) < 25){
 				return loc;
 			}
@@ -187,7 +210,7 @@ public class Launcher extends BaseBot {
 			MapLocation loc = enemies[i].location;
 			int smaller = Math.min(Math.abs(loc.x - curr.x), Math.abs(loc.y - curr.y));
 			int larger = Math.max(Math.abs(loc.x - curr.x), Math.abs(loc.y - curr.y));
-			if(larger > 6) continue;
+			if(larger > 5) continue;
 			if(smaller < dist1){
 				dist1 = smaller;
 				dist2 = larger;

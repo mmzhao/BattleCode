@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherStratPlusSoldiers;
 
 import battlecode.common.Clock;
 import battlecode.common.Direction;
@@ -14,7 +14,7 @@ public class Barracks extends BaseBot {
     public void execute() throws GameActionException {
     	int numSoldiers = rc.readBroadcast(getUnit(RobotType.SOLDIER) + 10);
     	int saveForSupply = 0;
-    	if(Clock.getRoundNum() > 1000) saveForSupply = 4;
+    	if(Clock.getRoundNum() > 500) saveForSupply = 5;
     	else if(Clock.getRoundNum() > 500) saveForSupply = 1;
     	
     	saveForSupply = 0;
