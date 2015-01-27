@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherSoldierStrat;
 
 import battlecode.common.*;
 
@@ -8,7 +8,7 @@ public class Soldier extends BaseBot{
 	private int towerToProtect;
 	private boolean attackTarget;
 	public MapLocation targetLoc;
-	
+
     public Soldier(RobotController rc) throws GameActionException {
         super(rc);
         towerToProtect = -1;
@@ -22,7 +22,7 @@ public class Soldier extends BaseBot{
     }
 
     public void execute() throws GameActionException {
-    	if (Clock.getRoundNum() <= 500) { //protect miners mode
+    	if (Clock.getRoundNum() <= rc.getRoundLimit()) { //protect miners mode
     		earlyGame();
     	}
     	
@@ -90,12 +90,12 @@ public class Soldier extends BaseBot{
     	}
     	
     	if(rc.isCoreReady()){
-        	micro();
+        	micro(enemies);
         }
         
         if (rc.isCoreReady()) {
     		if(rc.readBroadcast(2000) == 1){
-    			micro();
+    			micro(enemies);
     			if(rc.isCoreReady()){
 	    			attackTarget = true;
 	    			int rallyX = rc.readBroadcast(2001);
@@ -105,7 +105,7 @@ public class Soldier extends BaseBot{
     			}
     		}
     		else{
-    			micro();
+    			micro(enemies);
     			if(rc.isCoreReady()){
 	    			attackTarget = false;
 		            int rallyX = rc.readBroadcast(1001);
@@ -119,8 +119,7 @@ public class Soldier extends BaseBot{
         }
     }
     
-    public void micro() throws GameActionException{
-    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 24, theirTeam);
+    public void micro(RobotInfo[] enemies) throws GameActionException{
     	int length = enemies.length;
     	if(length == 0) return;
     	boolean noAttackersInRange = true;
@@ -222,129 +221,42 @@ public class Soldier extends BaseBot{
     }
 
     public void handleMissile(RobotInfo r, MapLocation loc, int dist) throws GameActionException {
-    	if ((r.health == 1 && rc.canAttackLocation(loc)) || dist < 2 ) { 
-    		if (rc.isWeaponReady()) //if we can kill safely, attack; or if its already next to us
-    			rc.attackLocation(loc);
-    		else {
-    			if (rc.isCoreReady()) //can't attack, try to retreat
-    				tryMove(loc.directionTo(rc.getLocation()));
-    		}
-    		return;
+    	
+    	if (rc.canAttackLocation(loc) && rc.isWeaponReady()) {
+    		rc.attackLocation(loc);
     	}
     	
-    	
-    	RobotInfo[] allies = rc.senseNearbyRobots(24, myTeam);
-    	if (allies.length == 0) { //safe to kite back
-    		if (rc.isCoreReady()) {
-    			tryMove(loc.directionTo(rc.getLocation()));
-    		}
-    		else {
-    			rc.attackLocation(loc);
-    		}
-    	}
-    	
-    	else {
-    		for (RobotInfo ri : allies) {
-    			if (ri.type == RobotType.LAUNCHER && ri.location.distanceSquaredTo(loc) < 2) { //missile is next to launcher
-    				if (rc.canAttackLocation(loc) && rc.isWeaponReady()) {
-    					rc.attackLocation(loc);
-    				}
-    				else if (rc.isCoreReady()) //retreat
-    					tryMove(loc.directionTo(rc.getLocation()));
-    			}
-    			
-    		}
-    	}
+    	else 
+    		tryMove(loc.directionTo(rc.getLocation()));
     	
     }
     
-/*    public void execute() throws GameActionException {
-    	rc.setIndicatorString(1, towerToProtect + "");
-        RobotInfo[] enemies = getEnemiesInAttackingRange(rc.getType());
-        
-        
-        
-        //micro
-        if(rc.isCoreReady()){
-//        	micro();
-        }
-        
-        if (enemies.length > 0) {
-            //attack!
-            if (rc.isWeaponReady()) {
-                attackForValue(enemies);
-            }
-        }
-        
-        if (rc.isCoreReady()) {
-//			micro();
-			if(rc.isCoreReady()){
-    			attackTarget = false;
-	            int rallyX = rc.readBroadcast(1001);
-	            int rallyY = rc.readBroadcast(1002);
-	            targetLoc = new MapLocation(rallyX, rallyY);
-//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
-//	            rc.setIndicatorString(0, rallyX + " " + rallyY);
-	            tryMove(rc.getLocation().directionTo(targetLoc));
-			}
-        }
-        
-        transferSupplies();
-        
-        rc.yield();
-    }
-*/
     
-    public void tryMove(Direction d) throws GameActionException {
-		int offsetIndex = 0;
-		int dirint = directionToInt(d);
-		boolean blocked = false;
-		while (offsetIndex < offsets.length &&
-				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
-						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])))) {
-			offsetIndex++;
-		}
-		if (offsetIndex < offsets.length) {
-			previous = rc.getLocation();
-			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
-		}
-		else{
-			offsets[1] *= -1;
-			offsets[2] *= -1;
-			offsets[3] *= -1;
+    
+    public int directionToInt(Direction d) {
+		switch(d) {
+			case NORTH:
+				return 0;
+			case NORTH_EAST:
+				return 1;
+			case EAST:
+				return 2;
+			case SOUTH_EAST:
+				return 3;
+			case SOUTH:
+				return 4;
+			case SOUTH_WEST:
+				return 5;
+			case WEST:
+				return 6;
+			case NORTH_WEST:
+				return 7;
+			default:
+				return -1;
 		}
 	}
-    
 	
-    public boolean isSafe(MapLocation ml) throws GameActionException{
-    	MapLocation[] enemyTowers = rc.senseEnemyTowerLocations();
-    	for(MapLocation m: enemyTowers){
-    		if(targetLoc != null && targetLoc.x == m.x && targetLoc.y == m.y){
-    			continue;
-    		}
-    		if(ml.distanceSquaredTo(m) <= RobotType.TOWER.attackRadiusSquared){
-    			return false;
-    		}
-    	}
-    	int HQRadiusAdd = 0;
-    	if(enemyTowers.length >= 2){
-    		HQRadiusAdd = 11;
-    	}
-    	if(ml.distanceSquaredTo(theirHQ) <= RobotType.HQ.attackRadiusSquared + HQRadiusAdd){
-    		if(targetLoc == null || targetLoc.x != theirHQ.x || targetLoc.y != theirHQ.y){
-        		return false;
-    		}
-    	}
-    	if(attackTarget) return true;
-    	if(rc.readBroadcast(4000) == 1 || rc.readBroadcast(3000) == 1) return true;
-    	RobotInfo[] enemies = rc.senseNearbyRobots(rc.getLocation(), 24, theirTeam);
-    	for(RobotInfo enemy:enemies){
-    		if(ml.distanceSquaredTo(enemy.location) <= enemy.type.attackRadiusSquared){
-    			return false;
-    		}
-    	}
-    	return true;
-    }
+   
     
 }
 

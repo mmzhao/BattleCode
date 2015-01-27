@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherSoldierStrat;
 
 import battlecode.common.*;
 
@@ -106,7 +106,7 @@ public class Miner extends BaseBot {
 			}
 		}
 		if(minOre > this.minOre && rc.canMove(dir) && isSafe(rc.getLocation().add(dir))){
-			previous = rc.getLocation();
+			previous1 = rc.getLocation();
 			rc.move(dir);
 			facing = dir;
 		}
@@ -123,11 +123,11 @@ public class Miner extends BaseBot {
 		while (offsetIndex < 8 && 
 				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
 						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])) ||
-						rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8]).equals(previous))) {
+						rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8]).equals(previous1))) {
 			offsetIndex++;
 		}
 		if (offsetIndex < 8) {
-			previous = rc.getLocation();
+			previous1 = rc.getLocation();
 			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
 			facing = directions[(dirint+offsets[offsetIndex]+8)%8];
 		}

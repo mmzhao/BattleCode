@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherSoldierStrat;
 
 import java.util.Random;
 
@@ -19,10 +19,11 @@ public class BaseBot {
     protected Team myTeam, theirTeam;
     static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	static Random rand;
-	int[] offsets = {0,1,-1,2,3};
+	int[] offsets = {0,1,2,3,4,5,6,7};
 	boolean calledForSupply;
 
-	public MapLocation previous;
+	public MapLocation previous1;
+	public MapLocation previous2;
 	
 	static int[] inQueue;
 
@@ -37,7 +38,8 @@ public class BaseBot {
         this.theirTeam = this.myTeam.opponent();
         this.theirHQ = rc.senseEnemyHQLocation();
         rand = new Random(rc.getID());
-        previous = new MapLocation(0, 0);
+        previous1 = null;
+        previous2 = null;
         calledForSupply = false;
     }
     
@@ -330,28 +332,30 @@ public class BaseBot {
 		int offsetIndex = 0;
 		int dirint = directionToInt(d);
 		boolean blocked = false;
-		while (offsetIndex < offsets.length && 
-				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
-						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])) ||
-						rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8]).equals(previous))) {
-			offsetIndex++;
+		boolean hittingWall = false;
+		Direction testDir = null;
+		while (offsetIndex < offsets.length) {
+			testDir = directions[(dirint + offsets[offsetIndex]+8)%8];
+			if (!rc.canMove(testDir) || !isSafe(rc.getLocation().add(testDir)) || rc.getLocation().add(testDir) == previous1 || 
+					rc.getLocation().add(testDir) == previous2) {
+				offsetIndex++;
+				hittingWall = true;
+			}
+			else 
+				break;
 		}
 		if (offsetIndex < offsets.length) {
-			previous = rc.getLocation();
-			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
+			previous2 = previous1;
+			previous1 = rc.getLocation();	
+			rc.setIndicatorString(0, previous1.x + ", " + previous1.y);
+			rc.setIndicatorString(1, previous2.x + ", " + previous2.y);
+			rc.setIndicatorString(2, rc.getLocation().add(testDir).x + ", " + rc.getLocation().add(testDir).y);
+			rc.move(testDir);
 		}
-//		else if(offsets.length == 5){
-//			offsets = new int[4];
-//			offsets[0] = 0;
-//			offsets[1] = 1;
-//			offsets[2] = 2;
-//			offsets[3] = 3;
-//		}
 		else{
-			for(int i = 1; i < offsets.length; i++){
+			for (int i = offsets.length - 1; --i>=0;) {
 				offsets[i] *= -1;
 			}
-			tryMove(d);
 		}
 	}
     

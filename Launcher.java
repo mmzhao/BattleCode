@@ -1,4 +1,4 @@
-package launcherStrat;
+package launcherSoldierStrat;
 
 import battlecode.common.*;
 
@@ -72,34 +72,6 @@ public class Launcher extends BaseBot {
 		rc.yield();
 	}
 	
-	public void tryMove(Direction d) throws GameActionException {
-		int offsetIndex = 0;
-		int dirint = directionToInt(d);
-		boolean blocked = false;
-		while (offsetIndex < offsets.length && 
-				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
-						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])) ||
-						rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8]).equals(previous))) {
-			offsetIndex++;
-		}
-		if (offsetIndex < offsets.length) {
-			previous = rc.getLocation();
-			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
-		}
-//		else if(offsets.length == 5){
-//			offsets = new int[4];
-//			offsets[0] = 0;
-//			offsets[1] = 1;
-//			offsets[2] = 2;
-//			offsets[3] = 3;
-//		}
-		else{
-			for(int i = 1; i < offsets.length; i++){
-				offsets[i] *= -1;
-			}
-			tryMove(d);
-		}
-	}
 	
 	public boolean atFrontLine(Direction dir) throws GameActionException{
 		RobotInfo oneForward = rc.senseRobotAtLocation(rc.getLocation().add(dir));
