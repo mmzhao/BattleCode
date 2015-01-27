@@ -19,13 +19,18 @@ public class BaseBot {
     protected Team myTeam, theirTeam;
     static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
 	static Random rand;
-	int[] offsets = {0,1,-1,2,3,4};
+	int[] offsets = {0,1,-1,2,3};
+	boolean calledForSupply;
 
 	public MapLocation previous;
 	
 	static int[] inQueue;
 
-    public BaseBot(RobotController rc) {
+	public BaseBot(){
+		
+	}
+	
+    public BaseBot(RobotController rc){
         this.rc = rc;
         this.myTeam = rc.getTeam();
         this.myHQ = rc.senseHQLocation();
@@ -33,6 +38,7 @@ public class BaseBot {
         this.theirHQ = rc.senseEnemyHQLocation();
         rand = new Random(rc.getID());
         previous = new MapLocation(0, 0);
+        calledForSupply = false;
     }
     
   //1 -- number of barracks
@@ -54,6 +60,20 @@ public class BaseBot {
   //17 -- number of launchers
   //18 -- number of commanders
   //19 -- number of computers
+    
+    
+  //USELESS INDICIES
+  //100 -- max n
+  //1n1 -- hit squad rally x
+  //1n2 -- hit squad rally y
+  //1n3 -- number of drones in hit squad n
+  //1n4 -- ID of target
+
+
+  //1000 -- number of soldiers defending base
+  //1001 -- rally x position
+  //1002 -- rally y position
+  //1003 -- no longer stay out of range
     
     public RobotType getUnit(int type){
     	if(type == 1) return RobotType.BEAVER;
@@ -106,6 +126,33 @@ public class BaseBot {
     	else if(type == RobotType.HANDWASHSTATION) return 9;
     	return 0;
     }
+    
+	public void addToSupplyQueue() throws GameActionException {
+		// int queueStart = rc.readBroadcast(98);
+		int queueEnd = rc.readBroadcast(99);
+
+		rc.broadcast(queueEnd, rc.getID());
+
+		queueEnd++;
+		if (queueEnd >= 1500) {
+			queueEnd = 100;
+		}
+		rc.broadcast(99, queueEnd);
+	}
+
+	public void addToSupplyQueueFront() throws GameActionException {
+		int queueStart = rc.readBroadcast(98);
+//		int queueEnd = rc.readBroadcast(99);
+
+		queueStart--;
+		if (queueStart < 100) {
+			queueStart = 1499;
+		}
+		
+		rc.broadcast(queueStart, rc.getID());
+		
+		rc.broadcast(98, queueStart);
+	}
     
     public void attackForValue(RobotInfo[] enemies) throws GameActionException {
         if (enemies.length == 0) {
@@ -225,16 +272,18 @@ public class BaseBot {
     
     public MapLocation closestLocation(MapLocation currRally, MapLocation[] ml)
 			throws GameActionException {
-		int minDist = currRally.distanceSquaredTo(ml[0]);
-		int minIndex = 0;
-		for (int i = 1; i < ml.length; i++) {
+		int minDist = Integer.MAX_VALUE;
+		int minIndex = -1;
+		for (int i = 0; i < ml.length; i++) {
 			int currDist = currRally.distanceSquaredTo(ml[i]);
 			if (currDist < minDist) {
 				minDist = currDist;
 				minIndex = i;
 			}
 		}
-		return ml[minIndex];
+		if(minIndex != -1)
+			return ml[minIndex];
+		return null;
 	}
     
     public void transferSupplies() throws GameActionException{
@@ -243,18 +292,15 @@ public class BaseBot {
     	MapLocation toTransfer = null;
     	double transferAmount = 0;
     	
-    	RobotInfo[] transferable = rc.senseNearbyRobots(rc.getLocation(), GameConstants.SUPPLY_TRANSFER_RADIUS_SQUARED, rc.getTeam());
+    	RobotInfo[] transferable = rc.senseNearbyRobots(rc.getLocation(), GameConstants.SUPPLY_TRANSFER_RADIUS_SQUARED, myTeam);
     	for(RobotInfo ri:transferable){
-    		if(ri.type == RobotType.MISSILE){
+    		if(ri.type == RobotType.MISSILE || ri.type == RobotType.TOWER || ri.type == RobotType.HQ || getBuilding(ri.type) != 0){
     			continue;
     		}
     		if(ri.supplyLevel < minSupply){
     			minSupply = ri.supplyLevel;
     			toTransfer = ri.location;
     			transferAmount = (rc.getSupplyLevel() - ri.supplyLevel) / 2;
-    			if(getBuilding(rc.getType()) != 0){
-    				transferAmount = rc.getSupplyLevel();
-    			}
     		}
     	}
     	if(toTransfer != null && rc.senseRobotAtLocation(toTransfer) != null){
@@ -266,13 +312,16 @@ public class BaseBot {
     		double minSupplyDivHealth = rc.getSupplyLevel()/rc.getHealth();
         	MapLocation toTransfer2 = null;
     		for(RobotInfo ri:transferable){
+    			if(ri.type == RobotType.MISSILE || ri.type == RobotType.TOWER || ri.type == RobotType.HQ || getBuilding(ri.type) != 0){
+        			continue;
+        		}
         		if(ri.supplyLevel/ri.health < minSupplyDivHealth){
         			minSupplyDivHealth = ri.supplyLevel/ri.health;
-        			toTransfer = ri.location;
+        			toTransfer2 = ri.location;
         		}
         	}
         	if(toTransfer2 != null && rc.senseRobotAtLocation(toTransfer2) != null){
-        		rc.transferSupplies((int)(rc.getSupplyLevel() - rc.getType().supplyUpkeep * 2), toTransfer2);
+        		rc.transferSupplies((int)(Math.max(0, rc.getSupplyLevel() - rc.getType().supplyUpkeep * 2)), toTransfer2);
         	}
     	}
     }
@@ -299,9 +348,9 @@ public class BaseBot {
 //			offsets[3] = 3;
 //		}
 		else{
-			offsets[1] *= -1;
-			offsets[2] *= -1;
-			offsets[3] *= -1;
+			for(int i = 1; i < offsets.length; i++){
+				offsets[i] *= -1;
+			}
 			tryMove(d);
 		}
 	}

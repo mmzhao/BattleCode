@@ -54,6 +54,15 @@ public class Miner extends BaseBot {
     	
     	transferSupplies();
     	
+    	double supplies = rc.getSupplyLevel();
+    	if(rc.readBroadcast(getUnit(RobotType.DRONE) + 10) > 0 && (supplies < 250 || !calledForSupply)){
+    		calledForSupply = true;
+    		addToSupplyQueue();
+    	}
+    	else if(supplies >= 250){
+    		calledForSupply = false;
+    	}
+    	
     	rc.yield();
     }
 	

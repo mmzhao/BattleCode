@@ -60,6 +60,9 @@ public class RobotPlayer {
         	case MISSILE:
         		myself = new Missile(rc);
         		break;
+        	case SUPPLYDEPOT:
+        		myself = new SupplyDepot(rc);
+        		break;
         	default:
         		myself = new BaseBot(rc);
         		break;

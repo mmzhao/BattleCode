@@ -32,23 +32,16 @@ import battlecode.common.TerrainTile;
 //17 -- number of launchers
 //18 -- number of commanders
 //19 -- number of computers
+//20 -- number of missiles
 
 //20 -- number of turrets
 //21 + 10n -- x position for turret n
 //22 + 10n -- y position for turret n
 //23 + 10n -- number of defenders for turret n
 
-//100 -- max n
-//1n1 -- hit squad rally x
-//1n2 -- hit squad rally y
-//1n3 -- number of drones in hit squad n
-//1n4 -- ID of target
-
-
-//1000 -- number of soldiers defending base
-//1001 -- rally x position
-//1002 -- rally y position
-//1003 -- no longer stay out of range
+//98 -- supply queue start
+//99 -- supply queue end
+//100 + n -- ID of nth supply needy robot
 
 //1500 -- number of good mining spots FOR NOW ONLY USING ONE SPOT
 //15n1 -- mining spot n x position
@@ -74,10 +67,22 @@ import battlecode.common.TerrainTile;
 
 //5000 -- total ore used
 
+//10000 -- number of targets
+//100n1 -- target n x position
+//100n2 -- target n y position
+//100n3 -- target this was updated
+
+//20000 -- number of missiles
+//200n1 -- target n x position
+//200n2 -- target n y position
+//200n3 -- missile n current x position
+//200n4 -- missile n current y position
+
 public class HQ extends BaseBot {
 
 	int[] units; // don't use 0th index
 	int[] buildings;
+	int missiles;
 
 	public int xmin, xmax, ymin, ymax;
 	public boolean isFinished;
@@ -85,11 +90,14 @@ public class HQ extends BaseBot {
 
 
 
-	public HQ(RobotController rc) {
+	public HQ(RobotController rc) throws GameActionException {
 		super(rc);
 		this.myHQ = rc.senseHQLocation();
 		this.theirHQ = rc.senseEnemyHQLocation();
 		inQueue = new int[10];
+		rc.broadcast(98, 100);
+        rc.broadcast(99, 100);
+        missiles = 0;
 	}
 
 	public void execute() throws GameActionException {
@@ -136,31 +144,31 @@ public class HQ extends BaseBot {
 			
 			//set up rally point
 			rallyPoint = closestLocation(myHQ, rc.senseEnemyTowerLocations());
-			rallyPoint = normalRushRally();
+//			rallyPoint = normalRushRally();
 //			rallyPoint = new MapLocation((myHQ.x + theirHQ.x)/2, (myHQ.y + theirHQ.y)/2);
 //			rallyPoint = theirHQ;
-			if(Clock.getRoundNum() < 1500){
-				setTarget();
-			}
-			else if(Clock.getRoundNum() < 1800){
-				rc.broadcast(2000, 0); //remove all targets
-				rc.broadcast(3000, 1); //start attack rush
-				rallyPoint = nextTower();
-			}
-			else{
-				rc.broadcast(4000, 1); //throw everything
-				rallyPoint = nextTower();
-			}
+//			if(Clock.getRoundNum() < 1500){
+//				setTarget();
+//			}
+//			else if(Clock.getRoundNum() < 1800){
+//				rc.broadcast(2000, 0); //remove all targets
+//				rc.broadcast(3000, 1); //start attack rush
+//				rallyPoint = nextTower();
+//			}
+//			else{
+//				rc.broadcast(4000, 1); //throw everything
+//				rallyPoint = nextTower();
+//			}
 		}
 		
 		
 		for (int i = 1; i < 10; i++) {
-			rc.broadcast(i, buildings[i]);
-			rc.broadcast(i + 10, units[i]);
+//			rc.broadcast(i, buildings[i]);
+			if(units[i] > 0) rc.broadcast(i + 10, units[i]);
 		}
-//		rc.broadcast(1000, numDefenders);
-		rc.broadcast(1001, rallyPoint.x);
-		rc.broadcast(1002, rallyPoint.y);
+		
+//		rc.broadcast(1001, rallyPoint.x);
+//		rc.broadcast(1002, rallyPoint.y);
 		
 //		System.out.println(rallyPoint.x + " " + rallyPoint.y);
 
@@ -168,16 +176,25 @@ public class HQ extends BaseBot {
 		setUpQueueInfo();
 
 		
-		rc.setIndicatorString(1, "used: "+ rc.readBroadcast(5000) + " mining per turn: " + rc.readBroadcast(2500));
+//		rc.setIndicatorString(1, "used: "+ rc.readBroadcast(5000) + " mining per turn: " + rc.readBroadcast(2500));
 		
+//		resetMissileTargets();
 
-		resetMining();
+//		resetMining();
 		
 		transferSupplies();
 
 
-
 		rc.yield();
+	}
+	
+	public void resetMissileTargets() throws GameActionException{
+		int count = rc.readBroadcast(10000);
+		for(int i = 0; i < count; i++){
+			rc.broadcast(10001 + 10 * i, 0);
+			rc.broadcast(10002 + 10 * i, 0);
+		}
+		rc.broadcast(10000, 0);
 	}
 	
 	public void resetMining() throws GameActionException{
@@ -437,7 +454,7 @@ public class HQ extends BaseBot {
 		}
 		
 		if(buildings[getBuilding(RobotType.SUPPLYDEPOT)]
-						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 300) / 30)) {
+						+ inQueue[getBuilding(RobotType.SUPPLYDEPOT)] < (int) ((Clock.getRoundNum() - 375) / 25)) {
 			addToQueue(getBuilding(RobotType.SUPPLYDEPOT));
 		}
 	}
@@ -543,6 +560,8 @@ public class HQ extends BaseBot {
 			rc.broadcast(2004, 0);
 			rc.broadcast(2005, 0);
 			
+			missiles = 0;
+			
 			RobotInfo[] ri = rc.senseNearbyRobots(rc.getLocation(), 100000000,
 					rc.getTeam());
 			units = new int[10];
@@ -569,6 +588,15 @@ public class HQ extends BaseBot {
 					units[8]++;
 				} else if (ri[i].type == RobotType.COMPUTER) {
 					units[9]++;
+				} else if (ri[i].type == RobotType.MISSILE){
+					MapLocation target = closestHitable(ri[i].location, rc.senseNearbyRobots(ri[i].location, 72, theirTeam));
+					if(target != null){
+						rc.broadcast(20001 + 10 * missiles, target.x);
+						rc.broadcast(20002 + 10 * missiles, target.y);
+						rc.broadcast(20003 + 10 * missiles, ri[i].location.x);
+						rc.broadcast(20004 + 10 * missiles, ri[i].location.y);
+						missiles++;
+					}
 				} else if (ri[i].type == RobotType.BARRACKS) {
 					buildings[1]++;
 				} else if (ri[i].type == RobotType.MINERFACTORY) {
@@ -589,6 +617,8 @@ public class HQ extends BaseBot {
 					buildings[9]++;
 				}
 			}
+//			System.out.println(missiles);
+			rc.broadcast(20000, missiles);
 			
 //			MapLocation[] towers = rc.senseTowerLocations();
 //			rc.broadcast(20, towers.length);
@@ -598,6 +628,34 @@ public class HQ extends BaseBot {
 //				rc.broadcast(23 + 10 * i, rc.senseNearbyRobots(towers[i], 9, myTeam).length);
 //			}
 			
+		}
+		
+		public MapLocation closestHitable(MapLocation loc, RobotInfo[] enemies){
+			MapLocation curr = loc;
+			int index = -1;
+			int dist1 = 11;
+			int dist2 = 11;
+			for(int i = 0; i < enemies.length; i++){
+				if(enemies[i].type == RobotType.MISSILE) continue;
+				MapLocation ml = enemies[i].location;
+				int smaller = Math.min(ml.x - curr.x, ml.y - curr.y);
+				int larger = Math.max(ml.x - curr.x, ml.y - curr.y);
+				if(larger > 7) continue;
+				if(smaller < dist1){
+					dist1 = smaller;
+					dist2 = larger;
+					index = i;
+				}
+				else if(smaller == dist1){
+					if(larger < dist2){
+						dist2 = larger;
+						index = i;
+					}
+				}
+			}
+			if(index != -1)
+				return enemies[index].location;
+			return null;
 		}
 
 	//SPECIALIZED FOR TANKS CHANGE LATER
@@ -755,6 +813,47 @@ public class HQ extends BaseBot {
 		 + units[3] + " " + units[4] + " " + units[5] + " " + units[6]
 		 + " " + units[7] + " " + units[8] + " " + units[9]);
 	}
+	
+public void transferSupplies() throws GameActionException{
+
+    	
+    	double minSupply = rc.getSupplyLevel();
+    	MapLocation toTransfer = null;
+    	double transferAmount = 0;
+    	
+    	RobotInfo[] transferable = rc.senseNearbyRobots(rc.getLocation(), GameConstants.SUPPLY_TRANSFER_RADIUS_SQUARED, myTeam);
+    	for(RobotInfo ri:transferable){
+    		if(ri.type == RobotType.MISSILE || ri.type == RobotType.TOWER || ri.type == RobotType.HQ || getBuilding(ri.type) != 0){
+    			continue;
+    		}
+    		else if(ri.type == RobotType.DRONE){
+    			rc.transferSupplies((int) Math.min(rc.getSupplyLevel(), 10000), ri.location);
+    		}
+    		if(ri.supplyLevel < minSupply){
+    			minSupply = ri.supplyLevel;
+    			toTransfer = ri.location;
+    			transferAmount = (rc.getSupplyLevel() - ri.supplyLevel) / 2;
+    		}
+    	}
+    	if(toTransfer != null && rc.senseRobotAtLocation(toTransfer) != null){
+    		rc.transferSupplies((int)(transferAmount), toTransfer);
+    	}
+    	
+    	//transfer if close to death
+    	if(rc.getHealth() < 10){
+    		double minSupplyDivHealth = rc.getSupplyLevel()/rc.getHealth();
+        	MapLocation toTransfer2 = null;
+    		for(RobotInfo ri:transferable){
+        		if(ri.supplyLevel/ri.health < minSupplyDivHealth){
+        			minSupplyDivHealth = ri.supplyLevel/ri.health;
+        			toTransfer2 = ri.location;
+        		}
+        	}
+        	if(toTransfer2 != null && rc.senseRobotAtLocation(toTransfer2) != null){
+        		rc.transferSupplies((int)(rc.getSupplyLevel() - Math.max(0, rc.getType().supplyUpkeep * 2)), toTransfer2);
+        	}
+    	}
+    }
 
 
 	

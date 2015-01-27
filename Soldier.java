@@ -35,7 +35,7 @@ public class Soldier extends BaseBot{
         
         //micro
         if(rc.isCoreReady()){
-        	micro();
+//        	micro();
         }
         
         if (enemies.length > 0) {
@@ -46,7 +46,7 @@ public class Soldier extends BaseBot{
         }
         
         if (rc.isCoreReady()) {
-			micro();
+//			micro();
 			if(rc.isCoreReady()){
     			attackTarget = false;
 	            int rallyX = rc.readBroadcast(1001);

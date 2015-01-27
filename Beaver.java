@@ -25,14 +25,14 @@ public class Beaver extends BaseBot {
 		
 		RobotInfo[] enemies = getEnemiesInAttackingRange(rc.getType());
 
-		if (enemies.length > 0) {
-			// attack!
-			if (rc.isWeaponReady()) {
-				attackLeastHealthEnemy(enemies);
-			}
-		}
+//		if (enemies.length > 0) {
+//			// attack!
+//			if (rc.isWeaponReady()) {
+//				attackLeastHealthEnemy(enemies);
+//			}
+//		}
 		
-		else if(!isOkaySpot(rc.getLocation())){
+		if(!isOkaySpot(rc.getLocation())){
 			if(rc.isCoreReady()){
 				tryMove(rc.getLocation().directionTo(myHQ));
 //				if(!isOkaySpot(rc.getLocation())){
@@ -71,15 +71,15 @@ public class Beaver extends BaseBot {
 	
 	public void tryMove(Direction d) throws GameActionException {
 		int offsetIndex = 0;
-		int[] offsets = {0,1,-1,2,-2};
+//		int[] offsets = {0,1,-1,2,-2};
 		int dirint = directionToInt(d);
-		while (offsetIndex < 5 && 
+		while (offsetIndex < offsets.length && 
 				(!rc.canMove(directions[(dirint+offsets[offsetIndex]+8)%8]) || 
 						!isSafe(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])) || 
 						!isOkaySpot(rc.getLocation().add(directions[(dirint+offsets[offsetIndex]+8)%8])))) {
 			offsetIndex++;
 		}
-		if (offsetIndex < 5) {
+		if (offsetIndex < offsets.length) {
 			rc.move(directions[(dirint+offsets[offsetIndex]+8)%8]);
 		}
 	}
@@ -153,18 +153,22 @@ public class Beaver extends BaseBot {
 				if (rc.getTeamOre() >= type.oreCost) {
 					if(rc.canBuild(Direction.SOUTH, type)){
 						rc.build(Direction.SOUTH, type);
+						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
 						return true;
 					}
 					else if(rc.canBuild(Direction.WEST, type)){
 						rc.build(Direction.WEST, type);
+						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
 						return true;
 					}
 					else if(rc.canBuild(Direction.NORTH, type)){
 						rc.build(Direction.NORTH, type);
+						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
 						return true;
 					}
 					else if(rc.canBuild(Direction.EAST, type)){
 						rc.build(Direction.EAST, type);
+						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
 						return true;
 					}
 	//				rc.setIndicatorString(2, "North: " + rc.canBuild(Direction.NORTH, type) + " East: " + rc.canBuild(Direction.EAST, type) + " South: " + rc.canBuild(Direction.SOUTH, type) + " West: " + rc.canBuild(Direction.WEST, type));
@@ -177,18 +181,22 @@ public class Beaver extends BaseBot {
 				if (rc.getTeamOre() >= type.oreCost) {
 					if(rc.canBuild(Direction.NORTH, type)){
 						rc.build(Direction.NORTH, type);
+						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
 						return true;
 					}
 					else if(rc.canBuild(Direction.EAST, type)){
 						rc.build(Direction.EAST, type);
+						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
 						return true;
 					}
 					else if(rc.canBuild(Direction.SOUTH, type)){
 						rc.build(Direction.SOUTH, type);
+						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
 						return true;
 					}
 					else if(rc.canBuild(Direction.WEST, type)){
 						rc.build(Direction.WEST, type);
+						rc.broadcast(5000, rc.readBroadcast(5000) + type.oreCost);
 						return true;
 					}
 	//				rc.setIndicatorString(2, "North: " + rc.canBuild(Direction.NORTH, type) + " East: " + rc.canBuild(Direction.EAST, type) + " South: " + rc.canBuild(Direction.SOUTH, type) + " West: " + rc.canBuild(Direction.WEST, type));
